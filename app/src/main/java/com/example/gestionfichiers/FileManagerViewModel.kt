@@ -73,6 +73,11 @@ class FileManagerViewModel : ViewModel() {
 
     fun clearSelection() = selected.clear()
 
+    fun selectAll() {
+        selected.clear()
+        selected.addAll(items)
+    }
+
     // ---- F4 / F5 : copier, déplacer ----
 
     fun startCopy() = startPending(OpType.COPY)

@@ -11,12 +11,16 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,24 +28,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.SdStorage
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -50,6 +65,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,8 +79,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -79,6 +97,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gestionfichiers.FileManagerViewModel
 import com.example.gestionfichiers.OpType
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /** État du glisser-déposer (F5). Positions en coordonnées de la racine de l'écran. */
@@ -124,11 +145,28 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
-                Column {
+                Column(Modifier.background(MaterialTheme.colorScheme.surface)) {
                     TopAppBar(
                         title = {
-                            Text(if (selectionActive) "${vm.selected.size} sélectionné(s)" else "Fichiers")
+                            if (selectionActive) {
+                                Text("${vm.selected.size} sélectionné(s)")
+                            } else {
+                                Column {
+                                    Text(
+                                        if (vm.canGoUp) vm.currentDir.name else "Fichiers",
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        "${vm.items.size} élément(s)",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         },
                         navigationIcon = {
                             when {
@@ -140,10 +178,32 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
                                 }
                             }
                         },
+                        actions = {
+                            if (selectionActive) {
+                                IconButton(onClick = { vm.selectAll() }) {
+                                    Icon(Icons.Filled.SelectAll, contentDescription = "Tout sélectionner")
+                                }
+                            } else {
+                                // Création de dossier, dans la section du haut
+                                FilledTonalButton(
+                                    onClick = { showNewFolder = true },
+                                    contentPadding = PaddingValues(horizontal = 14.dp),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.CreateNewFolder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Dossier")
+                                }
+                            }
+                        },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = if (selectionActive)
+                                MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surface
                         )
                     )
                     Breadcrumb(vm)
@@ -166,21 +226,15 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
                     )
                 }
             },
-            floatingActionButton = {
-                if (!selectionActive) {
-                    FloatingActionButton(onClick = { showNewFolder = true }) {
-                        Icon(Icons.Filled.CreateNewFolder, contentDescription = "Nouveau dossier")
-                    }
-                }
-            },
             snackbarHost = { SnackbarHost(snackbar) }
         ) { padding ->
             if (vm.items.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("Dossier vide", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                EmptyFolder(Modifier.fillMaxSize().padding(padding))
             } else {
-                LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
                     items(vm.items, key = { it.absolutePath }) { file ->
                         FileRow(
                             file = file,
@@ -215,16 +269,26 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
         if (drag.isDragging) {
             Card(
                 modifier = Modifier.offset {
-                    IntOffset(drag.pointer.x.roundToInt() + 24, drag.pointer.y.roundToInt() - 48)
+                    IntOffset(drag.pointer.x.roundToInt() - 200, drag.pointer.y.roundToInt() - 90)
                 },
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
-                Text(
-                    if (drag.dragging.size == 1) drag.dragging.first().name
-                    else "${drag.dragging.size} éléments",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    fontWeight = FontWeight.Medium
-                )
+                Row(
+                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.DriveFileMove, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (drag.dragging.size == 1) drag.dragging.first().name
+                        else "${drag.dragging.size} éléments",
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
@@ -242,13 +306,14 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
     if (showConfirmDelete) {
         AlertDialog(
             onDismissRequest = { showConfirmDelete = false },
+            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
             title = { Text("Supprimer ${vm.selected.size} élément(s) ?") },
             text = { Text("Cette action est définitive. Les dossiers sont supprimés avec leur contenu.") },
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteSelected()
                     showConfirmDelete = false
-                }) { Text("Supprimer") }
+                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDelete = false }) { Text("Annuler") }
@@ -257,25 +322,65 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Breadcrumb(vm: FileManagerViewModel) {
     val parts = vm.breadcrumb()
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         items(parts) { dir ->
-            val label = if (dir == vm.root) "Stockage" else dir.name
-            TextButton(onClick = { vm.enter(dir) }) {
-                Text(label, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            }
-            if (dir != parts.last()) {
-                Text("›", color = MaterialTheme.colorScheme.onPrimaryContainer)
+            val isLast = dir == parts.last()
+            FilterChip(
+                selected = isLast,
+                onClick = { vm.enter(dir) },
+                label = { Text(if (dir == vm.root) "Stockage" else dir.name) },
+                leadingIcon = if (dir == vm.root) {
+                    { Icon(Icons.Filled.SdStorage, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                } else null
+            )
+            if (!isLast) {
+                Icon(
+                    Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyFolder(modifier: Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Filled.FolderOpen,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.outline
+        )
+        Spacer(Modifier.height(12.dp))
+        Text("Ce dossier est vide", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private val dateFormat = SimpleDateFormat("d MMM yyyy", Locale.FRENCH)
+
+private fun iconFor(file: File): ImageVector = when {
+    file.isDirectory -> Icons.Filled.Folder
+    else -> when (file.extension.lowercase()) {
+        "jpg", "jpeg", "png", "gif", "webp", "heic", "bmp" -> Icons.Filled.Image
+        "mp4", "mkv", "avi", "mov", "webm", "3gp" -> Icons.Filled.Movie
+        "mp3", "wav", "ogg", "m4a", "flac", "aac" -> Icons.Filled.MusicNote
+        "pdf" -> Icons.Filled.PictureAsPdf
+        else -> Icons.Filled.Description
     }
 }
 
@@ -293,49 +398,78 @@ private fun FileRow(
 ) {
     val context = LocalContext.current
     var handleOrigin by remember { mutableStateOf(Offset.Zero) }
+    val colors = MaterialTheme.colorScheme
 
-    // Les dossiers déclarent leur zone pour recevoir un dépôt
     DisposableEffect(file) {
         onDispose { drag.folderBounds.remove(file) }
     }
 
-    val background = when {
-        isDropTarget -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-        selected -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surface
+    val rowColor = when {
+        isDropTarget -> colors.primaryContainer
+        selected -> colors.secondaryContainer
+        else -> colors.surface
     }
 
-    Card(
+    val details = if (file.isDirectory) {
+        "${file.list()?.size ?: 0} élément(s)"
+    } else {
+        Formatter.formatShortFileSize(context, file.length()) + "  ·  " + dateFormat.format(Date(file.lastModified()))
+    }
+
+    Surface(
+        color = rowColor,
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(16.dp))
             .onGloballyPositioned { coords ->
                 if (file.isDirectory) drag.folderBounds[file] = coords.boundsInRoot()
             }
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = background),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         Row(
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                if (file.isDirectory) Icons.Filled.Folder else Icons.Filled.InsertDriveFile,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(16.dp))
+            // Pastille d'icône (coche quand l'élément est sélectionné)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            selected -> colors.primary
+                            file.isDirectory -> colors.primaryContainer
+                            else -> colors.surfaceContainer
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (selected) Icons.Filled.Check else iconFor(file),
+                    contentDescription = null,
+                    tint = when {
+                        selected -> colors.onPrimary
+                        file.isDirectory -> colors.onPrimaryContainer
+                        else -> colors.onSurfaceVariant
+                    }
+                )
+            }
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(file.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (file.isFile) {
-                    Text(
-                        Formatter.formatShortFileSize(context, file.length()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    file.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (file.isDirectory) FontWeight.Medium else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    details,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
             }
             // Poignée de glisser-déposer
             Box(
@@ -361,7 +495,7 @@ private fun FileRow(
                 Icon(
                     Icons.Filled.DragIndicator,
                     contentDescription = "Glisser pour déplacer",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = colors.outline
                 )
             }
         }
@@ -370,21 +504,19 @@ private fun FileRow(
 
 @Composable
 private fun ActionBar(onCopy: () -> Unit, onMove: () -> Unit, onDelete: () -> Unit) {
-    BottomAppBar {
+    BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ActionButton("Copier", onCopy) { Icon(Icons.Filled.ContentCopy, null) }
             ActionButton("Déplacer", onMove) { Icon(Icons.Filled.DriveFileMove, null) }
-            ActionButton("Supprimer", onDelete) { Icon(Icons.Filled.Delete, null) }
+            ActionButton("Supprimer", onDelete) {
+                Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.ActionButton(
-    label: String,
-    onClick: () -> Unit,
-    icon: @Composable () -> Unit
-) {
+private fun RowScope.ActionButton(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
     TextButton(onClick = onClick, modifier = Modifier.weight(1f)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             icon()
@@ -395,11 +527,15 @@ private fun androidx.compose.foundation.layout.RowScope.ActionButton(
 
 @Composable
 private fun PasteBar(label: String, onPaste: () -> Unit, onCancel: () -> Unit) {
-    BottomAppBar {
-        Text(label, modifier = Modifier.weight(1f).padding(start = 16.dp))
+    BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+        Text(
+            label,
+            modifier = Modifier.weight(1f).padding(start = 16.dp),
+            style = MaterialTheme.typography.bodyMedium
+        )
         TextButton(onClick = onCancel) { Text("Annuler") }
-        TextButton(onClick = onPaste) {
-            Icon(Icons.Filled.ContentPaste, contentDescription = null)
+        FilledTonalButton(onClick = onPaste, modifier = Modifier.padding(end = 8.dp)) {
+            Icon(Icons.Filled.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
             Text("Coller ici")
         }
@@ -411,6 +547,7 @@ private fun NewFolderDialog(onCreate: (String) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.CreateNewFolder, contentDescription = null) },
         title = { Text("Nouveau dossier") },
         text = {
             OutlinedTextField(

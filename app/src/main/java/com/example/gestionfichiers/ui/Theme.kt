@@ -1,30 +1,42 @@
 package com.example.gestionfichiers.ui
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-
-private val Indigo = Color(0xFF3F51B5)
+import androidx.compose.ui.platform.LocalContext
 
 private val LightColors = lightColorScheme(
-    primary = Indigo,
+    primary = Color(0xFF3F51B5),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE8EAF6),
-    onPrimaryContainer = Color(0xFF1A237E),
+    primaryContainer = Color(0xFFDEE0FF),
+    onPrimaryContainer = Color(0xFF00105C),
+    secondaryContainer = Color(0xFFE1E0F9),
+    surface = Color(0xFFFBF8FF),
+    surfaceContainer = Color(0xFFEFEDF4),
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF9FA8DA),
-    primaryContainer = Color(0xFF303F9F),
+    primary = Color(0xFFBAC3FF),
+    primaryContainer = Color(0xFF293CA0),
+    onPrimaryContainer = Color(0xFFDEE0FF),
 )
 
+/** Couleurs du téléphone (Android 12+), sinon une palette indigo. */
 @Composable
 fun GestionFichiersTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
-        content = content
-    )
+    val dark = isSystemInDarkTheme()
+    val context = LocalContext.current
+    val scheme = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        dark -> DarkColors
+        else -> LightColors
+    }
+    MaterialTheme(colorScheme = scheme, content = content)
 }
