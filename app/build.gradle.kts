@@ -12,13 +12,17 @@ android {
         applicationId = "com.example.gestionfichiers"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 6
+        versionName = "1.0"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Réduit fortement la taille de l'APK (icônes et code inutilisés retirés)
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // APK non signée : la signature est faite à part avec la clé de publication
         }
     }
 

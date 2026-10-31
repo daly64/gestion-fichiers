@@ -323,22 +323,23 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                     else -> EmptyState(Icons.Filled.FolderOpen, "Ce dossier est vide", Modifier.fillMaxSize().padding(padding))
                 }
             } else {
-                // Style Windows : un appui sélectionne, un double appui ouvre,
-                // un appui long puis glisser déplace vers un dossier.
+                // Convention Android : un appui ouvre (ou coche en mode sélection),
+                // un appui long sélectionne ; appui long puis glisser déplace vers un dossier.
                 val gestures: @Composable (File) -> Modifier = { file ->
                     Modifier.fileGestures(
                         file = file,
                         drag = drag,
-                        onClick = { vm.toggle(file) },
-                        onDoubleClick = {
-                            vm.clearSelection()
-                            if (file.isDirectory) {
-                                vm.closeSearch()
-                                vm.enter(file)
-                            } else {
-                                openFile(context, file)
+                        onClick = {
+                            when {
+                                selectionActive -> vm.toggle(file)
+                                file.isDirectory -> {
+                                    vm.closeSearch()
+                                    vm.enter(file)
+                                }
+                                else -> openFile(context, file)
                             }
                         },
+                        onLongClick = { if (file !in vm.selected) vm.toggle(file) },
                         onDragStart = {
                             drag.dragging =
                                 if (file in vm.selected) vm.selected.toList() else listOf(file)
@@ -584,7 +585,11 @@ private fun TrashScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState) {
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 items(vm.trashItems, key = { it.file.absolutePath }) { item ->
-                    TrashRow(item, selected = item in vm.trashSelected, onClick = { vm.toggleTrash(item) })
+                    TrashRow(
+                        item,
+                        selected = item in vm.trashSelected,
+                        onClick = { vm.toggleTrash(item) }
+                    )
                 }
             }
         }
@@ -735,8 +740,8 @@ private fun iconFor(file: File): ImageVector = when {
 }
 
 /**
- * Gestes communs à la grille et à la liste : appui = sélection, double appui = ouvrir,
- * appui long puis glisser = déplacer vers un dossier.
+ * Gestes communs à la grille et à la liste : appui = ouvrir (ou cocher en mode sélection),
+ * appui long = sélectionner, appui long puis glisser = déplacer vers un dossier.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -744,7 +749,7 @@ private fun Modifier.fileGestures(
     file: File,
     drag: DragState,
     onClick: () -> Unit,
-    onDoubleClick: () -> Unit,
+    onLongClick: () -> Unit,
     onDragStart: () -> Unit,
     onDrop: () -> Unit
 ): Modifier {
@@ -757,7 +762,7 @@ private fun Modifier.fileGestures(
             origin = coords.positionInRoot()
             if (file.isDirectory) drag.folderBounds[file] = coords.boundsInRoot()
         }
-        .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
+        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
         // Placé après combinedClickable : reçoit les événements en premier
         .pointerInput(file) {
             detectDragGesturesAfterLongPress(

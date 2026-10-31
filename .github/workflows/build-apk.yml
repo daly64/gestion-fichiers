@@ -1,4 +1,4 @@
-name: Compiler l'APK de débogage
+name: Compiler les APK (débogage et release)
 
 on:
   push:
@@ -24,16 +24,20 @@ jobs:
       - name: Compiler
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug assembleRelease --stacktrace
 
       - name: Renommer l'APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk GestionFichiers-debug.apk
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk GestionFichiers-debug.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk GestionFichiers-release-non-signee.apk
 
       - name: Garder l'APK comme artefact
         uses: actions/upload-artifact@v4
         with:
           name: GestionFichiers-debug
-          path: GestionFichiers-debug.apk
+          path: |
+            GestionFichiers-debug.apk
+            GestionFichiers-release-non-signee.apk
 
       # Publication en « Release » : téléchargement direct depuis le téléphone
       - name: Publier l'APK
@@ -42,4 +46,6 @@ jobs:
           tag_name: debug-${{ github.run_number }}
           name: Version de test ${{ github.run_number }}
           prerelease: true
-          files: GestionFichiers-debug.apk
+          files: |
+            GestionFichiers-debug.apk
+            GestionFichiers-release-non-signee.apk
