@@ -10,7 +10,15 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -184,6 +192,12 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
                                     Icon(Icons.Filled.SelectAll, contentDescription = "Tout sélectionner")
                                 }
                             } else {
+                                IconButton(onClick = { vm.gridView = !vm.gridView }) {
+                                    Icon(
+                                        if (vm.gridView) Icons.AutoMirrored.Filled.ViewList else Icons.Filled.GridView,
+                                        contentDescription = if (vm.gridView) "Affichage en liste" else "Affichage en grille"
+                                    )
+                                }
                                 // Création de dossier, dans la section du haut
                                 FilledTonalButton(
                                     onClick = { showNewFolder = true },
@@ -231,35 +245,60 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
             if (vm.items.isEmpty()) {
                 EmptyFolder(Modifier.fillMaxSize().padding(padding))
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    items(vm.items, key = { it.absolutePath }) { file ->
-                        FileRow(
-                            file = file,
-                            selected = file in vm.selected,
-                            isDropTarget = drag.isDragging && drag.target() == file,
-                            drag = drag,
-                            onClick = {
-                                when {
-                                    selectionActive -> vm.toggle(file)
-                                    file.isDirectory -> vm.enter(file)
-                                    else -> openFile(context, file)
-                                }
-                            },
-                            onLongClick = { vm.toggle(file) },
-                            onDragStart = {
-                                drag.dragging =
-                                    if (file in vm.selected) vm.selected.toList() else listOf(file)
-                            },
-                            onDrop = {
-                                val target = drag.target()
-                                val files = drag.dragging
-                                drag.reset()
-                                if (target != null) vm.dropOnFolder(files, target)
-                            }
-                        )
+                // Style Windows : un appui sélectionne, un double appui ouvre,
+                // un appui long puis glisser déplace vers un dossier.
+                val gestures: @Composable (File) -> Modifier = { file ->
+                    Modifier.fileGestures(
+                        file = file,
+                        drag = drag,
+                        onClick = { vm.toggle(file) },
+                        onDoubleClick = {
+                            vm.clearSelection()
+                            if (file.isDirectory) vm.enter(file) else openFile(context, file)
+                        },
+                        onDragStart = {
+                            drag.dragging =
+                                if (file in vm.selected) vm.selected.toList() else listOf(file)
+                        },
+                        onDrop = {
+                            val target = drag.target()
+                            val files = drag.dragging
+                            drag.reset()
+                            if (target != null) vm.dropOnFolder(files, target)
+                        }
+                    )
+                }
+
+                if (vm.gridView) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 96.dp),
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        gridItems(vm.items, key = { it.absolutePath }) { file ->
+                            FileTile(
+                                file = file,
+                                selected = file in vm.selected,
+                                isDropTarget = drag.isDragging && drag.target() == file,
+                                gestures = gestures(file)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(vm.items, key = { it.absolutePath }) { file ->
+                            FileRow(
+                                file = file,
+                                selected = file in vm.selected,
+                                isDropTarget = drag.isDragging && drag.target() == file,
+                                gestures = gestures(file)
+                            )
+                        }
                     }
                 }
             }
@@ -384,120 +423,143 @@ private fun iconFor(file: File): ImageVector = when {
     }
 }
 
+/**
+ * Gestes communs à la grille et à la liste : appui = sélection, double appui = ouvrir,
+ * appui long puis glisser = déplacer vers un dossier.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FileRow(
+private fun Modifier.fileGestures(
     file: File,
-    selected: Boolean,
-    isDropTarget: Boolean,
     drag: DragState,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onDoubleClick: () -> Unit,
     onDragStart: () -> Unit,
     onDrop: () -> Unit
-) {
-    val context = LocalContext.current
-    var handleOrigin by remember { mutableStateOf(Offset.Zero) }
-    val colors = MaterialTheme.colorScheme
-
+): Modifier {
+    var origin by remember(file) { mutableStateOf(Offset.Zero) }
     DisposableEffect(file) {
         onDispose { drag.folderBounds.remove(file) }
     }
+    return this
+        .onGloballyPositioned { coords ->
+            origin = coords.positionInRoot()
+            if (file.isDirectory) drag.folderBounds[file] = coords.boundsInRoot()
+        }
+        .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick)
+        // Placé après combinedClickable : reçoit les événements en premier
+        .pointerInput(file) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = { offset ->
+                    drag.pointer = origin + offset
+                    onDragStart()
+                },
+                onDrag = { change, amount ->
+                    change.consume()
+                    drag.pointer += amount
+                },
+                onDragEnd = onDrop,
+                onDragCancel = { drag.reset() }
+            )
+        }
+}
 
-    val rowColor = when {
+@Composable
+private fun FileIconBadge(file: File, selected: Boolean, size: Dp, iconSize: Dp) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(size / 4))
+            .background(
+                when {
+                    selected -> colors.primary
+                    file.isDirectory -> colors.primaryContainer
+                    else -> colors.surfaceContainer
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            if (selected) Icons.Filled.Check else iconFor(file),
+            contentDescription = null,
+            modifier = Modifier.size(iconSize),
+            tint = when {
+                selected -> colors.onPrimary
+                file.isDirectory -> Color(0xFFF9A825)
+                else -> colors.onSurfaceVariant
+            }
+        )
+    }
+}
+
+/** Case de la grille, style explorateur Windows : grande icône, nom en dessous. */
+@Composable
+private fun FileTile(file: File, selected: Boolean, isDropTarget: Boolean, gestures: Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val bg = when {
+        isDropTarget -> colors.primaryContainer
+        selected -> colors.secondaryContainer
+        else -> Color.Transparent
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .then(gestures)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        FileIconBadge(file, selected, size = 60.dp, iconSize = 38.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            file.name,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** Ligne de la liste : icône, nom, détails. */
+@Composable
+private fun FileRow(file: File, selected: Boolean, isDropTarget: Boolean, gestures: Modifier) {
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    val bg = when {
         isDropTarget -> colors.primaryContainer
         selected -> colors.secondaryContainer
         else -> colors.surface
     }
-
     val details = if (file.isDirectory) {
         "${file.list()?.size ?: 0} élément(s)"
     } else {
-        Formatter.formatShortFileSize(context, file.length()) + "  ·  " + dateFormat.format(Date(file.lastModified()))
+        Formatter.formatShortFileSize(context, file.length()) + "  ·  " +
+            dateFormat.format(Date(file.lastModified()))
     }
-
-    Surface(
-        color = rowColor,
-        shape = RoundedCornerShape(16.dp),
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .clip(RoundedCornerShape(16.dp))
-            .onGloballyPositioned { coords ->
-                if (file.isDirectory) drag.folderBounds[file] = coords.boundsInRoot()
-            }
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .background(bg)
+            .then(gestures)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 0.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Pastille d'icône (coche quand l'élément est sélectionné)
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            selected -> colors.primary
-                            file.isDirectory -> colors.primaryContainer
-                            else -> colors.surfaceContainer
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (selected) Icons.Filled.Check else iconFor(file),
-                    contentDescription = null,
-                    tint = when {
-                        selected -> colors.onPrimary
-                        file.isDirectory -> colors.onPrimaryContainer
-                        else -> colors.onSurfaceVariant
-                    }
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    file.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (file.isDirectory) FontWeight.Medium else FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    details,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-            }
-            // Poignée de glisser-déposer
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .onGloballyPositioned { handleOrigin = it.positionInRoot() }
-                    .pointerInput(file) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                drag.pointer = handleOrigin + offset
-                                onDragStart()
-                            },
-                            onDrag = { change, amount ->
-                                change.consume()
-                                drag.pointer += amount
-                            },
-                            onDragEnd = onDrop,
-                            onDragCancel = { drag.reset() }
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Filled.DragIndicator,
-                    contentDescription = "Glisser pour déplacer",
-                    tint = colors.outline
-                )
-            }
+        FileIconBadge(file, selected, size = 44.dp, iconSize = 26.dp)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                file.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (file.isDirectory) FontWeight.Medium else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(details, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
     }
 }

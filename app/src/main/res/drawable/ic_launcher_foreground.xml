@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône de l'application : un dossier jaune, dans la zone sûre des icônes adaptatives -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Dos du dossier, avec l'onglet -->
+    <path
+        android:fillColor="#F9A825"
+        android:pathData="M33,35 L46,35 Q48,35 49.5,36.5 L53,40 L75,40 Q79,40 79,44 L79,71 Q79,75 75,75 L33,75 Q29,75 29,71 L29,39 Q29,35 33,35 Z" />
+    <!-- Face avant -->
+    <path
+        android:fillColor="#FFCA28"
+        android:pathData="M31,47 Q29,47 29,49 L29,71 Q29,75 33,75 L75,75 Q79,75 79,71 L79,49 Q79,47 77,47 Z" />
+    <!-- Reflet -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M31,47 L77,47 Q79,47 79,49 L79,51 L29,51 L29,49 Q29,47 31,47 Z" />
+</vector>

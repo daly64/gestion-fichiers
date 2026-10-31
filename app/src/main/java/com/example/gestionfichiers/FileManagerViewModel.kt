@@ -31,6 +31,9 @@ class FileManagerViewModel : ViewModel() {
         private set
     var message by mutableStateOf<String?>(null)
 
+    /** Affichage en grille (par défaut) ou en liste. */
+    var gridView by mutableStateOf(true)
+
     /** F3 : éléments sélectionnés. */
     val selected = mutableStateListOf<File>()
 
