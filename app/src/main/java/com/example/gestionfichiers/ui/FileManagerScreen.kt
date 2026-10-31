@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -464,28 +465,17 @@ private fun Modifier.fileGestures(
         }
 }
 
+/** Icône du fichier, sans arrière-plan. Une coche remplace l'icône si l'élément est sélectionné. */
 @Composable
 private fun FileIconBadge(file: File, selected: Boolean, size: Dp, iconSize: Dp) {
     val colors = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(size / 4))
-            .background(
-                when {
-                    selected -> colors.primary
-                    file.isDirectory -> colors.primaryContainer
-                    else -> colors.surfaceContainer
-                }
-            ),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
         Icon(
-            if (selected) Icons.Filled.Check else iconFor(file),
+            if (selected) Icons.Filled.CheckCircle else iconFor(file),
             contentDescription = null,
             modifier = Modifier.size(iconSize),
             tint = when {
-                selected -> colors.onPrimary
+                selected -> colors.primary
                 file.isDirectory -> Color(0xFFF9A825)
                 else -> colors.onSurfaceVariant
             }
@@ -511,7 +501,7 @@ private fun FileTile(file: File, selected: Boolean, isDropTarget: Boolean, gestu
             .padding(vertical = 10.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        FileIconBadge(file, selected, size = 60.dp, iconSize = 38.dp)
+        FileIconBadge(file, selected, size = 60.dp, iconSize = 56.dp)
         Spacer(Modifier.height(6.dp))
         Text(
             file.name,
@@ -549,7 +539,7 @@ private fun FileRow(file: File, selected: Boolean, isDropTarget: Boolean, gestur
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        FileIconBadge(file, selected, size = 44.dp, iconSize = 26.dp)
+        FileIconBadge(file, selected, size = 44.dp, iconSize = 36.dp)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
