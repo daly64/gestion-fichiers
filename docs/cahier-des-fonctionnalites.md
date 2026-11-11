@@ -104,7 +104,7 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 
 ### 4.8 Identité visuelle « Cobalt net »
 
-Référence : planche « Gestion Fichiers — identité visuelle » (identité, composants, écrans).
+Référence : [identité visuelle](identite-visuelle.md) et planche « Gestion Fichiers — identité visuelle » (identité, composants, écrans).
 
 - **Icône** : dossier blanc compact (56 × 34 sur la grille de 108) devant deux fiches rangées, pastille menthe avec une coche, sur fond cobalt. Aplats uniquement. Version thématique monochrome pour Android 13 et plus.
 - **Logo** : « gestion**fichiers** » en Manrope ExtraBold, en minuscules, « fichiers » en cobalt.
