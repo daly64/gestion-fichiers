@@ -36,13 +36,13 @@ Ce document décrit les fonctionnalités de l'application Gestion Fichiers, ses 
 | EF-10 | Corbeille | Consulter, restaurer ou supprimer définitivement les éléments supprimés. | Restauration à l'emplacement d'origine. Effacement automatique après 30 jours. Suppression définitive et vidage soumis à confirmation. |
 | EF-11 | Suivi des opérations | Afficher l'avancement des opérations longues et permettre de les annuler. | Pourcentage calculé sur la taille totale et nom du fichier en cours. L'annulation intervient entre deux fichiers. |
 | EF-12 | Tri | Trier le contenu par nom, date, taille ou type, en ordre croissant ou décroissant. | Les dossiers restent toujours avant les fichiers. Le tri choisi est conservé à la réouverture de l'application. |
-| EF-13 | Partage | Envoyer les fichiers sélectionnés vers une autre application (messagerie, e-mail, Bluetooth…). | Un ou plusieurs fichiers. Les dossiers ne peuvent pas être partagés directement : un message propose de les compresser en ZIP. |
+| EF-13 | Partage | Envoyer les fichiers sélectionnés vers une autre application (messagerie, e-mail, Bluetooth…). | Un ou plusieurs fichiers. Les dossiers ne peuvent pas être partagés directement : un message invite à les compresser en ZIP. |
 | EF-14 | Cartes SD et clés USB | Parcourir les stockages amovibles branchés au téléphone. | Chaque stockage apparaît dans le menu latéral avec son nom et son espace libre. Un stockage retiré disparaît de la liste. |
 | EF-15 | Accès rapide | Ouvrir en un appui les dossiers courants : Téléchargements, Photos (DCIM), Images, Documents, Musique, Vidéos. | Seuls les dossiers existants sont affichés. |
 | EF-16 | Favoris | Ajouter un dossier aux favoris, l'ouvrir depuis le menu latéral, le retirer. | Ajout depuis la sélection (un dossier) ou depuis le menu pour le dossier courant. Un favori dont le dossier n'existe plus est signalé. Les favoris sont conservés. |
 | EF-17 | Compression ZIP | Compresser la sélection dans une archive ZIP placée dans le dossier courant. | Les dossiers sont compressés avec leur contenu. Si le nom existe déjà, un numéro est ajouté (« Archive (2).zip »). Avancement et annulation comme EF-11 ; une archive annulée est effacée. |
 | EF-18 | Extraction ZIP | Extraire une archive ZIP sélectionnée seule. | Le contenu va dans un nouveau dossier portant le nom de l'archive. Les chemins dangereux (« ../ ») sont refusés. Avancement et annulation comme EF-11. |
-| EF-19 | Onglets | Ouvrir plusieurs dossiers dans des onglets et passer de l'un à l'autre. | Une copie ou un déplacement commencé dans un onglet peut être collé dans un autre. Un onglet se ferme d'un appui long ; le dernier ne peut pas être fermé. |
+| EF-19 | Onglets | Ouvrir plusieurs dossiers dans des onglets et passer de l'un à l'autre. | Une copie ou un déplacement commencé dans un onglet peut être collé dans un autre. L'onglet actif se ferme avec sa croix ; le dernier ne peut pas être fermé. |
 | EF-20 | Analyse du stockage | Afficher les dossiers et les fichiers qui prennent le plus de place dans le stockage courant. | Les 20 plus gros dossiers du premier niveau et les 50 plus gros fichiers, avec leur taille et une barre proportionnelle. Un appui ouvre le dossier, ou le dossier qui contient le fichier. La corbeille est comptée à part. |
 
 ## 4. Interface et interactions
@@ -58,7 +58,7 @@ Ce document décrit les fonctionnalités de l'application Gestion Fichiers, ses 
 
 ### 4.2 Menu latéral
 
-Ouvert par le bouton en haut à gauche ou en glissant depuis le bord gauche. Sections : **Stockages** (interne, cartes SD, clés USB), **Accès rapide**, **Favoris**, **Outils** (analyse du stockage, corbeille). Un appui long sur un favori propose de le retirer.
+Ouvert par le bouton en haut à gauche ou en glissant depuis le bord gauche. Sections : **Stockages** (interne, cartes SD, clés USB), **Accès rapide**, **Favoris**, **Outils** (analyse du stockage, corbeille). La croix à côté d'un favori le retire.
 
 ### 4.3 Couleurs par type de fichier
 
