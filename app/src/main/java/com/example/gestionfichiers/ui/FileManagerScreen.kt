@@ -216,7 +216,7 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
     val searchMode = vm.searchQuery != null
     // EF-22 : écran large (tablette ou téléphone en paysage)
     val wide = LocalConfiguration.current.screenWidthDp >= 600
-    LaunchedEffect(wide, vm.dualPane) { vm.setDualActive(wide && vm.dualPane) }
+    LaunchedEffect(wide, vm.dualPane) { vm.updateDualActive(wide && vm.dualPane) }
 
     BackHandler(enabled = selectionActive || searchMode || vm.canGoUp) {
         when {

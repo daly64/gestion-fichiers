@@ -177,7 +177,7 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Appelé par l'interface selon la largeur de l'écran. */
-    fun setDualActive(active: Boolean) {
+    fun updateDualActive(active: Boolean) {
         if (dualActive == active) return
         dualActive = active
         refreshSecondary()
