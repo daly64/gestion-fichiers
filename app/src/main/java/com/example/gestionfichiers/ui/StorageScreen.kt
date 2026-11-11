@@ -54,7 +54,12 @@ internal fun SpaceGauge(label: String, space: SpaceInfo, modifier: Modifier = Mo
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val warn = space.usedFraction > 0.9f
-    val barColor = if (warn) androidx.compose.ui.graphics.Color(0xFFEF6C00) else colors.primary
+    // Cobalt en clair, menthe en sombre, orange au-delà de 90 % (cahier § 4.8)
+    val barColor = when {
+        warn -> Cobalt.Warning
+        isDark() -> Cobalt.Mint500
+        else -> colors.primary
+    }
     Column(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Produit** | Gestion Fichiers, gestionnaire de fichiers pour Android |
-| **Version** | 2.2 |
+| **Version** | 2.3 |
 | **Plateforme** | Android 8.0 (API 26) et versions ultérieures |
 | **Technologie** | Kotlin, Jetpack Compose, Material 3 |
 | **Date** | 11 novembre 2026 |
@@ -66,17 +66,17 @@ Ouvert par le bouton en haut à gauche ou en glissant depuis le bord gauche. Sec
 
 ### 4.3 Couleurs par type de fichier
 
-| Type | Couleur |
-|---|---|
-| Dossier | Ambre |
-| Image | Vert |
-| Vidéo | Rouge |
-| Audio | Violet |
-| PDF | Rouge foncé |
-| Archive (ZIP, RAR, 7Z…) | Marron |
-| Application (APK) | Vert clair |
-| Document, tableur, présentation | Bleu |
-| Autre | Gris |
+| Type | Thème clair | Thème sombre |
+|---|---|---|
+| Dossier | Cobalt #2D5BFF | #5B7FFF |
+| Image | Vert menthe #12A37F | #4FD8B4 |
+| Vidéo | Orange #E8590C | #FF9B57 |
+| Audio | Violet #8B5CF6 | #C08CFF |
+| PDF | Rouge #D93838 | #FF8A8A |
+| Archive (ZIP, RAR, 7Z…) | Brun #A0703E | #D7A97E |
+| Application (APK) | Vert #3F8F3A | #8FD58A |
+| Document, tableur, présentation | Bleu ciel #0284C7 | #5CC8F5 |
+| Autre | Gris #64748B | #9AA6C0 |
 
 L'extension du fichier (PDF, MP3, ZIP…) s'affiche dans un petit badge de la couleur du type, en bas à droite de l'icône ou de la miniature.
 
@@ -101,6 +101,17 @@ Liste des éléments supprimés avec leur date de suppression et leur dossier d'
 
 Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros fichiers ». Un indicateur s'affiche pendant le calcul, qui se fait en arrière-plan.
 
+### 4.8 Identité visuelle « Cobalt net »
+
+Référence : planche « Gestion Fichiers — identité visuelle » (identité, composants, écrans).
+
+- **Icône** : dossier blanc devant deux fiches rangées, pastille menthe avec une coche, sur fond cobalt. Aplats uniquement. Version thématique monochrome pour Android 13 et plus.
+- **Logo** : « gestion**fichiers** » en Manrope ExtraBold, en minuscules, « fichiers » en cobalt.
+- **Couleurs** : cobalt #2D5BFF (marque, actions), menthe #18C29C (succès, « à jour »), orange #FFB547 (alerte), rouge #D93838 (danger) ; neutres de « brume » #F3F6FC à « nuit » #0B0F1A. Les couleurs du téléphone (Android 12+) ne sont pas utilisées.
+- **Typographie** : Manrope, intégrée à l'application. Titre 22–26/800, section 18/700, corps 15/500, détail 12/500, étiquette 11/700.
+- **Formes** : boutons et champs arrondis à 12, cartes et lignes à 16, boîtes de dialogue à 24.
+- **Composants** : bouton « + Dossier » plein cobalt ; fil d'Ariane avec l'étape courante pleine ; élément sélectionné bordé de cobalt ; barre de sélection flottante sombre dans les deux thèmes ; jauge cobalt (clair) ou menthe (sombre), orange au-delà de 90 % ; écran de démarrage cobalt (Android 12+).
+
 ## 5. Exigences non fonctionnelles
 
 | Domaine | Exigence |
@@ -109,7 +120,7 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 | Autorisations | Android 11 et plus : « Accès à tous les fichiers », demandé au premier lancement. Android 8 à 10 : lecture et écriture du stockage. |
 | Performance | Opérations sur les fichiers, recherche, analyse et miniatures exécutées en arrière-plan ; l'interface reste utilisable. Les miniatures sont mises en cache. |
 | Sécurité des données | Toute suppression passe par la corbeille. Aucune donnée ne quitte le téléphone, sauf partage demandé par l'utilisateur. Seule connexion internet : la lecture publique de la dernière version sur GitHub (EF-23). |
-| Apparence | Material 3 ; couleurs du système sur Android 12 et plus ; thème sombre pris en charge. |
+| Apparence | Material 3 avec l'identité « Cobalt net » (§ 4.8) ; thème sombre pris en charge. |
 | Accessibilité | Chaque bouton icône dispose d'une description lisible par les lecteurs d'écran. |
 | Préférences | Tri, mode d'affichage et favoris conservés entre deux lancements. |
 
@@ -142,6 +153,7 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 | 2.0 | Tri, partage, cartes SD et clés USB, accès rapide, favoris, ZIP, onglets, analyse du stockage ; miniatures, couleurs par type, taille et date, jauge d'espace, animations. |
 | 2.1 | Double volet sur écran large, archives 7Z et RAR, ZIP protégé par mot de passe. |
 | 2.2 | Badge d'extension coloré, vérification des mises à jour, signature stable, identifiant définitif. |
+| 2.3 | Identité visuelle « Cobalt net » : icône, couleurs, Manrope, composants, écran de démarrage. |
 
 ## Annexe — Organisation du code
 
@@ -159,4 +171,4 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 | `ui/FileItems.kt` | Cases et lignes de fichiers : miniatures, couleurs, détails. |
 | `ui/StorageScreen.kt` | Écran d'analyse du stockage et jauge d'espace. |
 | `ui/TrashScreen.kt` | Écran de la corbeille. |
-| `ui/Theme.kt` | Couleurs et thème. |
+| `ui/Theme.kt` | Identité « Cobalt net » : couleurs claires et sombres, police Manrope, formes. |

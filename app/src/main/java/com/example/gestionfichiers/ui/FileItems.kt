@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.format.Formatter
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
@@ -76,16 +77,20 @@ import java.util.Locale
 // Types de fichiers : icône et couleur (cahier § 4.3)
 // =====================================================================
 
-enum class FileKind(val icon: ImageVector, val color: Color) {
-    FOLDER(Icons.Filled.Folder, Color(0xFFF9A825)),
-    IMAGE(Icons.Filled.Image, Color(0xFF43A047)),
-    VIDEO(Icons.Filled.Movie, Color(0xFFE53935)),
-    AUDIO(Icons.Filled.MusicNote, Color(0xFF8E24AA)),
-    PDF(Icons.Filled.PictureAsPdf, Color(0xFFC62828)),
-    ARCHIVE(Icons.Filled.FolderZip, Color(0xFF8D6E63)),
-    APK(Icons.Filled.Android, Color(0xFF7CB342)),
-    DOCUMENT(Icons.Filled.Description, Color(0xFF1E88E5)),
-    OTHER(Icons.AutoMirrored.Filled.InsertDriveFile, Color(0xFF9E9E9E));
+/** Couleur claire / couleur sombre : teintes plus claires en thème sombre pour garder le contraste. */
+enum class FileKind(val icon: ImageVector, val light: Color, val dark: Color) {
+    FOLDER(Icons.Filled.Folder, Color(0xFF2D5BFF), Color(0xFF5B7FFF)),
+    IMAGE(Icons.Filled.Image, Color(0xFF12A37F), Color(0xFF4FD8B4)),
+    VIDEO(Icons.Filled.Movie, Color(0xFFE8590C), Color(0xFFFF9B57)),
+    AUDIO(Icons.Filled.MusicNote, Color(0xFF8B5CF6), Color(0xFFC08CFF)),
+    PDF(Icons.Filled.PictureAsPdf, Color(0xFFD93838), Color(0xFFFF8A8A)),
+    ARCHIVE(Icons.Filled.FolderZip, Color(0xFFA0703E), Color(0xFFD7A97E)),
+    APK(Icons.Filled.Android, Color(0xFF3F8F3A), Color(0xFF8FD58A)),
+    DOCUMENT(Icons.Filled.Description, Color(0xFF0284C7), Color(0xFF5CC8F5)),
+    OTHER(Icons.AutoMirrored.Filled.InsertDriveFile, Color(0xFF64748B), Color(0xFF9AA6C0));
+
+    @Composable
+    fun color(): Color = if (isDark()) dark else light
 
     val hasThumbnail: Boolean get() = this == IMAGE || this == VIDEO
 
@@ -203,7 +208,7 @@ internal fun FileThumb(file: File, selected: Boolean, size: Dp, iconSize: Dp, ki
         if (selected) {
             Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(iconSize), tint = colors.primary)
         } else {
-            Icon(kind.icon, contentDescription = null, modifier = Modifier.size(iconSize), tint = kind.color)
+            Icon(kind.icon, contentDescription = null, modifier = Modifier.size(iconSize), tint = kind.color())
             val loader = LocalThumbLoader.current
             if (kind.hasThumbnail && loader != null) {
                 val context = LocalContext.current
@@ -246,14 +251,14 @@ internal fun FileThumb(file: File, selected: Boolean, size: Dp, iconSize: Dp, ki
             if (ext.isNotEmpty() && size >= 40.dp) {
                 Text(
                     ext,
-                    color = Color.White,
+                    color = if (isDark()) Cobalt.Night900 else Color.White,
                     fontSize = if (size >= 60.dp) 10.sp else 8.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(kind.color)
+                        .background(kind.color())
                         .padding(horizontal = 4.dp, vertical = 1.dp)
                 )
             }
@@ -308,8 +313,9 @@ internal fun FileTile(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(bg)
+            .then(if (selected || isDropTarget) Modifier.border(2.dp, colors.primary, RoundedCornerShape(14.dp)) else Modifier)
             .then(gestures)
             .padding(vertical = 8.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -349,15 +355,16 @@ internal fun FileRow(
     val bg = when {
         isDropTarget -> colors.primaryContainer
         selected -> colors.secondaryContainer
-        else -> colors.surface
+        else -> colors.surfaceContainerLowest
     }
     val details = rememberDetails(file)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
+            .then(if (selected || isDropTarget) Modifier.border(2.dp, colors.primary, RoundedCornerShape(16.dp)) else Modifier)
             .then(gestures)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically

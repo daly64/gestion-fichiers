@@ -55,6 +55,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.gestionfichiers.ArchiveFormat
 import com.example.gestionfichiers.UpdateInfo
+import com.example.gestionfichiers.R
+import androidx.compose.foundation.Image
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -323,8 +333,9 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                                         IconButton(onClick = vm::openSearch) {
                                             Icon(Icons.Filled.Search, contentDescription = "Rechercher")
                                         }
-                                        FilledTonalButton(
+                                        Button(
                                             onClick = { showNewFolder = true },
+                                            shape = RoundedCornerShape(12.dp),
                                             contentPadding = PaddingValues(horizontal = 12.dp)
                                         ) {
                                             Icon(Icons.Filled.CreateNewFolder, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -856,12 +867,31 @@ private fun DrawerContent(vm: FileManagerViewModel, onDone: () -> Unit) {
     val context = LocalContext.current
     ModalDrawerSheet(Modifier.widthIn(max = 320.dp)) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
-            Text(
-                "Gestion Fichiers",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp)
-            )
+            // Logo : icône et mot-symbole « gestionfichiers » (cahier § 4.8)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 12.dp, top = 20.dp, bottom = 8.dp)
+            ) {
+                Box(
+                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Cobalt.C500),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    buildAnnotatedString {
+                        append("gestion")
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("fichiers") }
+                    },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
 
             DrawerSection("Stockages")
             vm.volumes.forEach { volume ->
@@ -921,7 +951,7 @@ private fun DrawerContent(vm: FileManagerViewModel, onDone: () -> Unit) {
                         Icon(
                             Icons.Filled.Star,
                             contentDescription = null,
-                            tint = if (exists) Color(0xFFF9A825) else MaterialTheme.colorScheme.outline
+                            tint = if (exists) Cobalt.Warning else MaterialTheme.colorScheme.outline
                         )
                     },
                     label = {
@@ -1114,6 +1144,12 @@ private fun Breadcrumb(vm: FileManagerViewModel) {
                 FilterChip(
                     selected = isLast,
                     onClick = { vm.enter(dir) },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary
+                    ),
                     label = { Text(if (dir == top) vm.titleOf(dir) else dir.name) },
                     leadingIcon = if (dir == top) {
                         { Icon(Icons.Filled.SdStorage, contentDescription = null, modifier = Modifier.size(18.dp)) }
@@ -1144,6 +1180,7 @@ internal fun EmptyState(icon: ImageVector, text: String, modifier: Modifier) {
     }
 }
 
+/** Barre de sélection flottante, sombre dans les deux thèmes (cahier § 4.8). */
 @Composable
 private fun ActionBar(
     canExtract: Boolean,
@@ -1154,29 +1191,42 @@ private fun ActionBar(
     onZip: () -> Unit,
     onDelete: () -> Unit
 ) {
-    BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    val bg = if (isDark()) Cobalt.Night800 else Cobalt.Ink
+    val fg = Cobalt.Snow
+    Surface(
+        color = bg,
+        contentColor = fg,
+        shape = RoundedCornerShape(22.dp),
+        shadowElevation = 6.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             val arrow = otherPaneArrow?.let { " $it" }.orEmpty()
-            ActionButton("Copier$arrow", onCopy) { Icon(Icons.Filled.ContentCopy, null) }
-            ActionButton("Déplacer$arrow", onMove) { Icon(Icons.Filled.DriveFileMove, null) }
-            ActionButton("Partager", onShare) { Icon(Icons.Filled.Share, null) }
+            ActionButton("Copier$arrow", onCopy, fg) { Icon(Icons.Filled.ContentCopy, null) }
+            ActionButton("Déplacer$arrow", onMove, fg) { Icon(Icons.Filled.DriveFileMove, null) }
+            ActionButton("Partager", onShare, fg) { Icon(Icons.Filled.Share, null) }
             if (canExtract) {
-                ActionButton("Extraire", onZip) { Icon(Icons.Filled.Unarchive, null) }
+                ActionButton("Extraire", onZip, fg) { Icon(Icons.Filled.Unarchive, null) }
             } else {
-                ActionButton("Archiver", onZip) { Icon(Icons.Filled.FolderZip, null) }
+                ActionButton("Archiver", onZip, fg) { Icon(Icons.Filled.FolderZip, null) }
             }
-            ActionButton("Supprimer", onDelete) {
-                Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error)
-            }
+            ActionButton("Supprimer", onDelete, Cobalt.DangerLight) { Icon(Icons.Filled.Delete, null) }
         }
     }
 }
 
 @Composable
-internal fun RowScope.ActionButton(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
+internal fun RowScope.ActionButton(
+    label: String,
+    onClick: () -> Unit,
+    contentColor: Color = Color.Unspecified,
+    icon: @Composable () -> Unit
+) {
     TextButton(
         onClick = onClick,
         modifier = Modifier.weight(1f),
+        colors = if (contentColor != Color.Unspecified) ButtonDefaults.textButtonColors(contentColor = contentColor)
+            else ButtonDefaults.textButtonColors(),
         contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ : écran de démarrage cobalt avec l'icône -->
+    <style name="Theme.GestionFichiers" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fond_clair</item>
+        <item name="android:colorAccent">@color/cobalt</item>
+        <item name="android:statusBarColor">@color/fond_clair</item>
+        <item name="android:navigationBarColor">@color/fond_clair</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowSplashScreenBackground">@color/cobalt</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+    </style>
+</resources>

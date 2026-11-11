@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Version monochrome pour les icônes à thème (Android 13+) -->
+<!-- Icône thématique (Android 13+) : une seule teinte, choisie par le système -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M33,35 L46,35 Q48,35 49.5,36.5 L53,40 L75,40 Q79,40 79,44 L79,71 Q79,75 75,75 L33,75 Q29,75 29,71 L29,39 Q29,35 33,35 Z" />
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.45"
+        android:pathData="M35.5,22 L72.5,22 A3.5,3.5 0 0 1 76,25.5 L76,28.5 A3.5,3.5 0 0 1 72.5,32 L35.5,32 A3.5,3.5 0 0 1 32,28.5 L32,25.5 A3.5,3.5 0 0 1 35.5,22 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.7"
+        android:pathData="M29.5,30 L78.5,30 A3.5,3.5 0 0 1 82,33.5 L82,36.5 A3.5,3.5 0 0 1 78.5,40 L29.5,40 A3.5,3.5 0 0 1 26,36.5 L26,33.5 A3.5,3.5 0 0 1 29.5,30 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,47 Q20,42 25,42 L40,42 Q42,42 43.5,43.5 L47,47 L83,47 Q88,47 88,52 L88,80 Q88,85 83,85 L25,85 Q20,85 20,80 Z" />
 </vector>

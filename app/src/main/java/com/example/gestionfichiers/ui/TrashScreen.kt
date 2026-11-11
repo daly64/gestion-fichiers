@@ -117,8 +117,8 @@ internal fun TrashScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState) 
                         ActionButton("Restaurer", vm::restoreSelected) {
                             Icon(Icons.Filled.RestoreFromTrash, null)
                         }
-                        ActionButton("Supprimer définitivement", { confirmForever = true }) {
-                            Icon(Icons.Filled.DeleteForever, null, tint = MaterialTheme.colorScheme.error)
+                        ActionButton("Supprimer définitivement", { confirmForever = true }, MaterialTheme.colorScheme.error) {
+                            Icon(Icons.Filled.DeleteForever, null)
                         }
                     }
                 }

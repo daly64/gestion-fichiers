@@ -1,20 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icône de l'application : un dossier jaune, dans la zone sûre des icônes adaptatives -->
+<!-- Icône « Cobalt net » : un dossier blanc devant des fiches rangées, coche menthe « en ordre ».
+     Grille de 108 dp, dessin dans la zone sûre (cercle de 66 dp). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Dos du dossier, avec l'onglet -->
+    <!-- Fiche du fond -->
     <path
-        android:fillColor="#F9A825"
-        android:pathData="M33,35 L46,35 Q48,35 49.5,36.5 L53,40 L75,40 Q79,40 79,44 L79,71 Q79,75 75,75 L33,75 Q29,75 29,71 L29,39 Q29,35 33,35 Z" />
-    <!-- Face avant -->
+        android:fillColor="#8EA8FF"
+        android:pathData="M35.5,22 L72.5,22 A3.5,3.5 0 0 1 76,25.5 L76,28.5 A3.5,3.5 0 0 1 72.5,32 L35.5,32 A3.5,3.5 0 0 1 32,28.5 L32,25.5 A3.5,3.5 0 0 1 35.5,22 Z" />
+    <!-- Fiche du milieu -->
     <path
-        android:fillColor="#FFCA28"
-        android:pathData="M31,47 Q29,47 29,49 L29,71 Q29,75 33,75 L75,75 Q79,75 79,71 L79,49 Q79,47 77,47 Z" />
-    <!-- Reflet -->
+        android:fillColor="#B9C9FF"
+        android:pathData="M29.5,30 L78.5,30 A3.5,3.5 0 0 1 82,33.5 L82,36.5 A3.5,3.5 0 0 1 78.5,40 L29.5,40 A3.5,3.5 0 0 1 26,36.5 L26,33.5 A3.5,3.5 0 0 1 29.5,30 Z" />
+    <!-- Dossier -->
     <path
-        android:fillColor="#FFE082"
-        android:pathData="M31,47 L77,47 Q79,47 79,49 L79,51 L29,51 L29,49 Q29,47 31,47 Z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,47 Q20,42 25,42 L40,42 Q42,42 43.5,43.5 L47,47 L83,47 Q88,47 88,52 L88,80 Q88,85 83,85 L25,85 Q20,85 20,80 Z" />
+    <!-- Pastille menthe et coche -->
+    <path
+        android:fillColor="#18C29C"
+        android:pathData="M70,77 A9,9 0 1 0 88,77 A9,9 0 1 0 70,77 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M75,77 L78,80 L83.5,74" />
 </vector>

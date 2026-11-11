@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.daly64.gestionfichiers"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "2.2"
+        versionCode = 10
+        versionName = "2.3"
         resValue("string", "app_name", "Gestion Fichiers")
     }
 
