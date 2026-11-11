@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Produit** | Gestion Fichiers, gestionnaire de fichiers pour Android |
-| **Version** | 2.4 |
+| **Version** | 2.5 |
 | **Plateforme** | Android 8.0 (API 26) et versions ultérieures |
 | **Technologie** | Kotlin, Jetpack Compose, Material 3 |
 | **Date** | 11 novembre 2026 |
@@ -47,7 +47,7 @@ Ce document décrit les fonctionnalités de l'application Gestion Fichiers, ses 
 | EF-21 | Archives protégées | Créer un ZIP protégé par mot de passe ; extraire un ZIP, 7Z ou RAR protégé. | Chiffrement AES-256, mot de passe de 4 caractères minimum, affichable. À l'extraction, le mot de passe est demandé seulement si l'archive est protégée, et redemandé s'il est faux. Aucun mot de passe n'est enregistré. |
 | EF-22 | Double volet | Sur un écran large (tablette, téléphone en paysage), afficher deux dossiers côte à côte. | Activé par défaut, désactivable dans le menu. Chaque volet affiche un onglet ; un appui dans un volet le rend actif. « Copier → » et « Déplacer → » envoient directement la sélection dans le dossier de l'autre volet. Glisser un élément dans l'autre volet le déplace. |
 | EF-23 | Mises à jour | Vérifier s'il existe une version plus récente et la télécharger. | Vérification automatique au plus une fois par jour, silencieuse sans connexion ; vérification manuelle depuis le menu latéral, avec la version installée. Une version peut être ignorée. Le fichier se télécharge dans le navigateur et s'installe par-dessus l'ancienne version, en conservant favoris et réglages. |
-| EF-24 | Plein écran | Masquer la barre d'état et la barre de navigation du téléphone. | Activé ou désactivé depuis le menu ⋮, conservé entre deux lancements. En plein écran, un glissement depuis le haut ou le bas fait réapparaître les barres un instant. |
+| EF-24 | Plein écran | Masquer la barre d'état et la barre de navigation du téléphone. | Activé automatiquement à chaque démarrage de l'application. Peut être quitté (puis réactivé) depuis le menu ⋮ jusqu'au prochain démarrage. En plein écran, un glissement depuis le haut ou le bas fait réapparaître les barres un instant. |
 
 ## 4. Interface et interactions
 
@@ -132,7 +132,7 @@ Référence : planche « Gestion Fichiers — identité visuelle » (identité, 
 | Identifiant | `io.github.daly64.gestionfichiers`, définitif à partir de la version 2.2. |
 | Version officielle | Compilée en release (optimisée, non débogable) et signée avec la clé de publication. Publiée sur GitHub sous l'étiquette `v<version>` ; c'est elle que l'application propose en mise à jour. |
 | Clé de publication | Conservée hors du dépôt, dans les secrets GitHub `SIGNING_KEYSTORE_BASE64` et `SIGNING_PASSWORD`, avec une copie de sauvegarde chez le développeur. Elle doit rester la même pour toujours : sans elle, aucune mise à jour ne peut s'installer par-dessus. |
-| Version de test | Publiée à chaque envoi (étiquette `test-<n>`), sous le nom « Gestion Fichiers (test) ». Elle s'installe à côté de la version officielle et se met à jour par-dessus elle-même (clé de test fixe). |
+| Version de test | Publiée à chaque envoi (étiquette `test-<n>`), sous le même nom « Gestion Fichiers ». Elle s'installe à côté de la version officielle et se met à jour par-dessus elle-même (clé de test fixe). |
 | Numéro de version | `versionCode` augmenté à chaque version publiée, sinon Android refuse la mise à jour. |
 | Play Protect | Version officielle signée et non débogable, cible Android 15 (API 35), aucune autorisation d'installer des applications. Si un avertissement apparaît, l'APK peut être soumis à Google pour analyse. À partir de 2027, l'enregistrement du développeur (compte gratuit « distribution limitée ») sera nécessaire sur les téléphones certifiés. |
 
@@ -156,6 +156,7 @@ Référence : planche « Gestion Fichiers — identité visuelle » (identité, 
 | 2.2 | Badge d'extension coloré, vérification des mises à jour, signature stable, identifiant définitif. |
 | 2.3 | Identité visuelle « Cobalt net » : icône, couleurs, Manrope, composants, écran de démarrage. |
 | 2.4 | Plein écran ; dossier de l'icône réduit. |
+| 2.5 | Plein écran automatique au démarrage ; nom « Gestion Fichiers » aussi pour la version de test. |
 
 ## Annexe — Organisation du code
 

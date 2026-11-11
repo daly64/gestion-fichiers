@@ -47,6 +47,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // EF-24 : plein écran automatique à chaque démarrage (pas à la rotation de l'écran)
+        if (savedInstanceState == null) Prefs(this).fullScreen = true
+        applyFullScreen(Prefs(this).fullScreen)
         hasAccess = checkAccess()
         setContent {
             GestionFichiersTheme {

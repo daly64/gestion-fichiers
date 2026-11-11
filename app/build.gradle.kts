@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.daly64.gestionfichiers"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "2.4"
+        versionCode = 12
+        versionName = "2.5"
         resValue("string", "app_name", "Gestion Fichiers")
     }
 
@@ -44,7 +44,6 @@ android {
             // Installable à côté de la version publiée
             applicationIdSuffix = ".test"
             versionNameSuffix = "-test"
-            resValue("string", "app_name", "Gestion Fichiers (test)")
         }
         release {
             isDebuggable = false

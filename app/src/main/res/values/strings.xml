@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Le nom de l'application est défini dans build.gradle.kts (« Gestion Fichiers (test) » pour les versions de test) -->
+    <!-- Le nom de l'application est défini dans build.gradle.kts -->
 </resources>
