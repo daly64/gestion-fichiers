@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.gestionfichiers"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "2.0"
+        versionCode = 8
+        versionName = "2.1"
     }
 
     buildTypes {
@@ -52,5 +52,10 @@ dependencies {
     // Miniatures des images et des vidéos
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")
+    // Archives : ZIP avec mot de passe (AES), 7Z (+ compression LZMA), RAR
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("org.tukaani:xz:1.10")
+    implementation("com.github.junrar:junrar:7.5.5")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

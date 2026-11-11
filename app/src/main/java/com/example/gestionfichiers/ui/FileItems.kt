@@ -117,13 +117,28 @@ class DragState {
     var dragging by mutableStateOf<List<File>>(emptyList())
     var pointer by mutableStateOf(Offset.Zero)
     val folderBounds = mutableMapOf<File, Rect>()
+    /** EF-22 : volets du double volet ; déposer dans un volet déplace vers son dossier. */
+    val paneBounds = mutableMapOf<File, Rect>()
 
     val isDragging: Boolean get() = dragging.isNotEmpty()
 
-    fun target(): File? =
+    /** Un dossier visé a priorité sur le volet qui le contient. */
+    val targetIsPane: Boolean get() = folderTarget() == null && paneTarget() != null
+
+    /** Dossier qui contient déjà les éléments déplacés : pas une cible valable. */
+    private fun isSource(folder: File) = dragging.any { it.parentFile == folder }
+
+    private fun folderTarget(): File? =
         folderBounds.entries.firstOrNull { (folder, rect) ->
-            rect.contains(pointer) && folder !in dragging
+            rect.contains(pointer) && folder !in dragging && !isSource(folder)
         }?.key
+
+    private fun paneTarget(): File? =
+        paneBounds.entries.firstOrNull { (dir, rect) ->
+            rect.contains(pointer) && dir !in dragging && !isSource(dir)
+        }?.key
+
+    fun target(): File? = folderTarget() ?: paneTarget()
 
     fun reset() {
         dragging = emptyList()

@@ -38,6 +38,22 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.VerticalSplit
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import com.example.gestionfichiers.ArchiveFormat
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -198,6 +214,9 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
 
     val selectionActive = vm.selected.isNotEmpty()
     val searchMode = vm.searchQuery != null
+    // EF-22 : écran large (tablette ou téléphone en paysage)
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    LaunchedEffect(wide, vm.dualPane) { vm.setDualActive(wide && vm.dualPane) }
 
     BackHandler(enabled = selectionActive || searchMode || vm.canGoUp) {
         when {
@@ -304,6 +323,7 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                                             MainMenu(
                                                 vm = vm,
                                                 expanded = showMenu,
+                                                wide = wide,
                                                 onDismiss = { showMenu = false },
                                                 onSort = { showSort = true }
                                             )
@@ -346,8 +366,11 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                         )
                         selectionActive -> ActionBar(
                             canExtract = vm.canExtract,
-                            onCopy = vm::startCopy,
-                            onMove = vm::startMove,
+                            // Double volet : copie et déplacement directs vers le volet d'en face
+                            otherPaneArrow = if (vm.secondaryDir == null) null
+                                else if (vm.secondaryIndex > vm.tabIndex) "→" else "←",
+                            onCopy = { if (vm.secondaryDir != null) vm.copyToOtherPane() else vm.startCopy() },
+                            onMove = { if (vm.secondaryDir != null) vm.moveToOtherPane() else vm.startMove() },
                             onShare = {
                                 val files = vm.selected.toList()
                                 if (files.any { it.isDirectory }) {
@@ -365,11 +388,13 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
             ) { padding ->
                 // Convention Android : un appui ouvre (ou coche en mode sélection),
                 // un appui long sélectionne ; appui long puis glisser déplace vers un dossier.
-                val gestures: @Composable (File) -> Modifier = { file ->
+                // [pane] : onglet affiché par le volet ; un geste dans l'autre volet le rend d'abord actif.
+                val gestures: @Composable (File, Int) -> Modifier = { file, pane ->
                     Modifier.fileGestures(
                         file = file,
                         drag = drag,
                         onClick = {
+                            if (pane != vm.tabIndex) vm.activatePane(pane)
                             when {
                                 vm.selected.isNotEmpty() -> vm.toggle(file)
                                 file.isDirectory -> {
@@ -379,8 +404,12 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                                 else -> openFile(context, file)
                             }
                         },
-                        onLongClick = { if (file !in vm.selected) vm.toggle(file) },
+                        onLongClick = {
+                            if (pane != vm.tabIndex) vm.activatePane(pane)
+                            if (file !in vm.selected) vm.toggle(file)
+                        },
                         onDragStart = {
+                            if (pane != vm.tabIndex) vm.activatePane(pane)
                             drag.dragging =
                                 if (file in vm.selected) vm.selected.toList() else listOf(file)
                         },
@@ -393,26 +422,34 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                     )
                 }
                 val contentModifier = Modifier.fillMaxSize().padding(padding)
+                val secondary = vm.secondaryListing
 
-                if (searchMode) {
-                    SearchResults(vm, drag, gestures, contentModifier)
-                } else {
-                    // Animation douce au passage d'un dossier à l'autre (cahier § 4.5)
-                    AnimatedContent(
-                        targetState = vm.listing,
-                        contentKey = { it.dir },
-                        transitionSpec = {
-                            val deeper = targetState.dir.absolutePath
-                                .startsWith(initialState.dir.absolutePath + File.separator)
-                            val sign = if (deeper) 1 else -1
-                            (slideInHorizontally(tween(260)) { w -> sign * w / 4 } + fadeIn(tween(260)))
-                                .togetherWith(slideOutHorizontally(tween(200)) { w -> -sign * w / 4 } + fadeOut(tween(200)))
-                        },
-                        modifier = contentModifier,
-                        label = "dossier"
-                    ) { listing ->
-                        FolderContent(vm, listing, drag, gestures)
+                when {
+                    searchMode -> SearchResults(vm, drag, { f -> gestures(f, vm.tabIndex) }, contentModifier)
+                    vm.dualActive && secondary != null -> {
+                        // EF-22 : deux volets côte à côte, à position fixe (l'onglet le plus à gauche à gauche)
+                        val leftIsActive = vm.tabIndex < vm.secondaryIndex
+                        Row(contentModifier) {
+                            val panes = if (leftIsActive)
+                                listOf(Triple(vm.tabIndex, vm.listing, true), Triple(vm.secondaryIndex, secondary, false))
+                            else
+                                listOf(Triple(vm.secondaryIndex, secondary, false), Triple(vm.tabIndex, vm.listing, true))
+                            panes.forEachIndexed { i, (index, listing, active) ->
+                                if (i == 1) VerticalDivider()
+                                Pane(
+                                    vm = vm,
+                                    dir = listing.dir,
+                                    active = active,
+                                    drag = drag,
+                                    onActivate = { vm.activatePane(index) },
+                                    modifier = Modifier.weight(1f).fillMaxSize()
+                                ) {
+                                    AnimatedFolder(vm, listing, drag, { f -> gestures(f, index) }, Modifier.fillMaxSize())
+                                }
+                            }
+                        }
                     }
+                    else -> AnimatedFolder(vm, vm.listing, drag, { f -> gestures(f, vm.tabIndex) }, contentModifier)
                 }
             }
 
@@ -460,18 +497,22 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
     }
 
     if (showCompress) {
-        NameDialog(
-            title = "Compresser en ZIP",
-            icon = Icons.Filled.FolderZip,
-            initial = remember { vm.suggestedZipName() },
-            confirmLabel = "Compresser",
-            label = "Nom de l'archive",
-            suffix = ".zip",
-            onConfirm = { name ->
-                vm.compressSelected(name)
+        CompressDialog(
+            initial = remember { vm.suggestedArchiveName() },
+            onConfirm = { name, format, password ->
+                vm.compressSelected(name, format, password)
                 showCompress = false
             },
             onDismiss = { showCompress = false }
+        )
+    }
+
+    vm.passwordRequest?.let { archive ->
+        PasswordDialog(
+            archiveName = archive.name,
+            wrong = vm.passwordWasWrong,
+            onConfirm = vm::submitPassword,
+            onDismiss = vm::cancelPassword
         )
     }
 
@@ -519,6 +560,94 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                 TextButton(onClick = { showConfirmDelete = false }) { Text("Annuler") }
             }
         )
+    }
+}
+
+/** Contenu d'un dossier, avec une animation douce au passage d'un dossier à l'autre (cahier § 4.5). */
+@Composable
+private fun AnimatedFolder(
+    vm: FileManagerViewModel,
+    listing: Listing,
+    drag: DragState,
+    gestures: @Composable (File) -> Modifier,
+    modifier: Modifier
+) {
+    AnimatedContent(
+        targetState = listing,
+        contentKey = { it.dir },
+        transitionSpec = {
+            val deeper = targetState.dir.absolutePath
+                .startsWith(initialState.dir.absolutePath + File.separator)
+            val sign = if (deeper) 1 else -1
+            (slideInHorizontally(tween(260)) { w -> sign * w / 4 } + fadeIn(tween(260)))
+                .togetherWith(slideOutHorizontally(tween(200)) { w -> -sign * w / 4 } + fadeOut(tween(200)))
+        },
+        modifier = modifier,
+        label = "dossier"
+    ) { shown ->
+        FolderContent(vm, shown, drag, gestures)
+    }
+}
+
+/**
+ * EF-22 : un volet du double volet. En-tête avec le nom du dossier, mis en évidence
+ * pour le volet actif ; tout le volet sert de cible au glisser-déposer.
+ */
+@Composable
+private fun Pane(
+    vm: FileManagerViewModel,
+    dir: File,
+    active: Boolean,
+    drag: DragState,
+    onActivate: () -> Unit,
+    modifier: Modifier,
+    content: @Composable () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val isDropTarget = drag.isDragging && drag.target() == dir && drag.targetIsPane
+    DisposableEffect(dir) {
+        onDispose { drag.paneBounds.remove(dir) }
+    }
+    Column(
+        modifier
+            .onGloballyPositioned { drag.paneBounds[dir] = it.boundsInRoot() }
+            .background(if (isDropTarget) colors.primaryContainer.copy(alpha = 0.4f) else Color.Transparent)
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (active) colors.secondaryContainer else colors.surfaceContainer)
+                .clickable(onClick = onActivate)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.FolderOpen,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = if (active) colors.primary else colors.onSurfaceVariant
+            )
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    vm.titleOf(dir),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    vm.displayPath(dir),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) { content() }
     }
 }
 
@@ -611,7 +740,7 @@ private fun SearchResults(
 
 /** Menu « ⋮ » de l'écran principal. */
 @Composable
-private fun MainMenu(vm: FileManagerViewModel, expanded: Boolean, onDismiss: () -> Unit, onSort: () -> Unit) {
+private fun MainMenu(vm: FileManagerViewModel, expanded: Boolean, wide: Boolean, onDismiss: () -> Unit, onSort: () -> Unit) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
             text = { Text("Trier : ${vm.sortBy.label.lowercase()}${if (vm.sortDescending) " ↓" else " ↑"}") },
@@ -628,6 +757,13 @@ private fun MainMenu(vm: FileManagerViewModel, expanded: Boolean, onDismiss: () 
             },
             onClick = { onDismiss(); vm.toggleView() }
         )
+        if (wide) {
+            DropdownMenuItem(
+                text = { Text(if (vm.dualPane) "Un seul volet" else "Double volet") },
+                leadingIcon = { Icon(Icons.Filled.VerticalSplit, contentDescription = null) },
+                onClick = { onDismiss(); vm.toggleDualPane() }
+            )
+        }
         DropdownMenuItem(
             text = { Text("Nouvel onglet") },
             leadingIcon = { Icon(Icons.Filled.Tab, contentDescription = null) },
@@ -981,6 +1117,7 @@ internal fun EmptyState(icon: ImageVector, text: String, modifier: Modifier) {
 @Composable
 private fun ActionBar(
     canExtract: Boolean,
+    otherPaneArrow: String?,
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onShare: () -> Unit,
@@ -989,13 +1126,14 @@ private fun ActionBar(
 ) {
     BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ActionButton("Copier", onCopy) { Icon(Icons.Filled.ContentCopy, null) }
-            ActionButton("Déplacer", onMove) { Icon(Icons.Filled.DriveFileMove, null) }
+            val arrow = otherPaneArrow?.let { " $it" }.orEmpty()
+            ActionButton("Copier$arrow", onCopy) { Icon(Icons.Filled.ContentCopy, null) }
+            ActionButton("Déplacer$arrow", onMove) { Icon(Icons.Filled.DriveFileMove, null) }
             ActionButton("Partager", onShare) { Icon(Icons.Filled.Share, null) }
             if (canExtract) {
                 ActionButton("Extraire", onZip) { Icon(Icons.Filled.Unarchive, null) }
             } else {
-                ActionButton("ZIP", onZip) { Icon(Icons.Filled.FolderZip, null) }
+                ActionButton("Archiver", onZip) { Icon(Icons.Filled.FolderZip, null) }
             }
             ActionButton("Supprimer", onDelete) {
                 Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error)
@@ -1095,6 +1233,139 @@ private fun NameDialog(
             )
         },
         confirmButton = { TextButton(onClick = { onConfirm(value.text) }) { Text(confirmLabel) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+    )
+}
+
+/** EF-17 / EF-21 : nom, format (ZIP ou 7Z) et mot de passe facultatif (ZIP seulement). */
+@Composable
+private fun CompressDialog(
+    initial: String,
+    onConfirm: (String, ArchiveFormat, String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(TextFieldValue(initial, selection = TextRange(0, initial.length))) }
+    var format by remember { mutableStateOf(ArchiveFormat.ZIP) }
+    var protect by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    var visible by remember { mutableStateOf(false) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    val passwordOk = !protect || password.length >= 4
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.FolderZip, contentDescription = null) },
+        title = { Text("Créer une archive") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Nom de l'archive") },
+                    suffix = { Text(".${format.extension}") },
+                    modifier = Modifier.focusRequester(focus)
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(ArchiveFormat.ZIP, ArchiveFormat.SEVEN_Z).forEach { f ->
+                        FilterChip(selected = format == f, onClick = { format = f }, label = { Text(f.label) })
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                if (format == ArchiveFormat.ZIP) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .toggleable(value = protect, role = Role.Checkbox, onValueChange = { protect = it })
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(checked = protect, onCheckedChange = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Protéger par un mot de passe")
+                    }
+                    if (protect) {
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            singleLine = true,
+                            label = { Text("Mot de passe") },
+                            supportingText = { Text("4 caractères minimum · chiffrement AES-256") },
+                            isError = password.isNotEmpty() && !passwordOk,
+                            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { visible = !visible }) {
+                                    Icon(
+                                        if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (visible) "Masquer le mot de passe" else "Afficher le mot de passe"
+                                    )
+                                }
+                            }
+                        )
+                    }
+                } else {
+                    Text(
+                        "Le 7Z compresse mieux ; le mot de passe n'est proposé qu'en ZIP.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name.text, format, if (protect && format == ArchiveFormat.ZIP) password else null) },
+                enabled = passwordOk
+            ) { Text("Créer") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+    )
+}
+
+/** EF-21 : mot de passe d'une archive protégée, redemandé s'il est faux. */
+@Composable
+private fun PasswordDialog(archiveName: String, wrong: Boolean, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var password by remember { mutableStateOf("") }
+    var visible by remember { mutableStateOf(false) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+        title = { Text("Archive protégée") },
+        text = {
+            Column {
+                Text("Entrez le mot de passe de « $archiveName ».")
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    singleLine = true,
+                    label = { Text("Mot de passe") },
+                    isError = wrong,
+                    supportingText = if (wrong) {
+                        { Text("Mot de passe incorrect, réessayez") }
+                    } else null,
+                    visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { visible = !visible }) {
+                            Icon(
+                                if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (visible) "Masquer le mot de passe" else "Afficher le mot de passe"
+                            )
+                        }
+                    },
+                    modifier = Modifier.focusRequester(focus)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(password) }, enabled = password.isNotEmpty()) { Text("Extraire") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
     )
 }

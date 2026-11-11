@@ -27,6 +27,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_GRID, true)
         set(value) = sp.edit().putBoolean(KEY_GRID, value).apply()
 
+    /** EF-22 : double volet sur écran large. */
+    var dualPane: Boolean
+        get() = sp.getBoolean(KEY_DUAL, true)
+        set(value) = sp.edit().putBoolean(KEY_DUAL, value).apply()
+
     /** Chemins absolus des dossiers favoris, dans l'ordre d'ajout. */
     var favorites: List<String>
         get() = sp.getString(KEY_FAVORITES, null)
@@ -40,5 +45,6 @@ class Prefs(context: Context) {
         const val KEY_SORT_DESC = "sort_desc"
         const val KEY_GRID = "grid_view"
         const val KEY_FAVORITES = "favorites"
+        const val KEY_DUAL = "dual_pane"
     }
 }

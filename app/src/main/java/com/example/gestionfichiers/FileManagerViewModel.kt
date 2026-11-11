@@ -43,6 +43,19 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
 
     val currentDir: File get() = tabs[tabIndex.coerceIn(0, tabs.lastIndex)]
 
+    // ---- EF-22 : double volet (écran large). Le second volet affiche un autre onglet. ----
+    /** Choix de l'utilisateur (conservé). */
+    var dualPane by mutableStateOf(prefs.dualPane)
+        private set
+    /** Vrai quand l'écran est assez large et le double volet choisi : fixé par l'interface. */
+    var dualActive by mutableStateOf(false)
+        private set
+    var secondaryIndex by mutableIntStateOf(-1)
+        private set
+    var secondaryListing by mutableStateOf<Listing?>(null)
+        private set
+    val secondaryDir: File? get() = if (dualActive) tabs.getOrNull(secondaryIndex) else null
+
     var listing by mutableStateOf(Listing(root, emptyList()))
         private set
     val items: List<File> get() = listing.files
@@ -133,6 +146,46 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
         }
         listing = Listing(dir, FileOps.list(dir, sortBy, sortDescending))
         space = Storage.space(volumeOf(dir).root)
+        refreshSecondary()
+    }
+
+    private fun refreshSecondary() {
+        if (!dualActive) {
+            secondaryListing = null
+            return
+        }
+        ensureSecondary()
+        var dir = tabs[secondaryIndex]
+        if (!dir.isDirectory) {
+            dir = root
+            tabs[secondaryIndex] = root
+        }
+        secondaryListing = Listing(dir, FileOps.list(dir, sortBy, sortDescending))
+    }
+
+    /** Garantit un second onglet, différent de l'onglet actif, pour le second volet. */
+    private fun ensureSecondary() {
+        if (tabs.size < 2) tabs.add(currentDir)
+        if (secondaryIndex !in tabs.indices || secondaryIndex == tabIndex) {
+            secondaryIndex = tabs.indices.first { it != tabIndex }
+        }
+    }
+
+    fun toggleDualPane() {
+        dualPane = !dualPane
+        prefs.dualPane = dualPane
+    }
+
+    /** Appelé par l'interface selon la largeur de l'écran. */
+    fun setDualActive(active: Boolean) {
+        if (dualActive == active) return
+        dualActive = active
+        refreshSecondary()
+    }
+
+    /** Rend actif le volet qui affiche l'onglet [index] (appui dans l'autre volet). */
+    fun activatePane(index: Int) {
+        if (index != tabIndex) selectTab(index)
     }
 
     fun enter(dir: File) {
@@ -250,6 +303,8 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun selectTab(index: Int) {
         if (index !in tabs.indices) return
+        // En double volet, choisir l'onglet du second volet échange les deux volets
+        if (dualActive && index == secondaryIndex) secondaryIndex = tabIndex
         tabIndex = index
         selected.clear()
         closeSearch()
@@ -260,6 +315,7 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
         if (tabs.size <= 1 || index !in tabs.indices) return
         tabs.removeAt(index)
         if (tabIndex >= tabs.size || tabIndex > index) tabIndex = (tabIndex - 1).coerceAtLeast(0)
+        if (secondaryIndex > index) secondaryIndex-- else if (secondaryIndex == index) secondaryIndex = -1
         selected.clear()
         refresh()
     }
@@ -304,6 +360,21 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** EF-22 : copier ou déplacer la sélection directement vers le dossier de l'autre volet. */
+    fun copyToOtherPane() = toOtherPane(OpType.COPY)
+    fun moveToOtherPane() = toOtherPane(OpType.MOVE)
+
+    private fun toOtherPane(type: OpType) {
+        val target = secondaryDir ?: return
+        val files = selected.toList()
+        if (files.isEmpty()) return
+        selected.clear()
+        when (type) {
+            OpType.COPY -> runOp("Copié dans « ${titleOf(target)} »", sizeOf(files)) { p -> FileOps.copy(files, target, p) }
+            OpType.MOVE -> runOp("Déplacé dans « ${titleOf(target)} »", sizeOf(files)) { p -> FileOps.move(files, target, p) }
+        }
+    }
+
     /** F5 : glisser-déposer sur un dossier. */
     fun dropOnFolder(files: List<File>, folder: File) {
         selected.clear()
@@ -333,35 +404,73 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
         runOp("Renommé en « ${name.trim()} »", null) { FileOps.rename(file, name).map { } }
     }
 
-    // ---- EF-17 / EF-18 : ZIP ----
+    // ---- EF-17 / EF-18 / EF-21 : archives ----
+
+    /** Archive en attente de mot de passe (la boîte de dialogue s'affiche), et si le précédent était faux. */
+    var passwordRequest by mutableStateOf<File?>(null)
+        private set
+    var passwordWasWrong by mutableStateOf(false)
+        private set
 
     /** Nom proposé pour l'archive : le nom de l'élément s'il est seul, sinon « Archive ». */
-    fun suggestedZipName(): String {
+    fun suggestedArchiveName(): String {
         val single = selected.singleOrNull() ?: return "Archive"
         return if (single.isDirectory) single.name else single.nameWithoutExtension.ifEmpty { single.name }
     }
 
-    fun compressSelected(rawName: String) {
+    fun compressSelected(rawName: String, format: ArchiveFormat, password: String?) {
         val sources = selected.toList()
         if (sources.isEmpty()) return
-        val name = rawName.trim().removeSuffix(".zip").removeSuffix(".ZIP")
+        val name = rawName.trim().let { n ->
+            if (n.endsWith(".${format.extension}", ignoreCase = true)) n.dropLast(format.extension.length + 1) else n
+        }
         if (name.isEmpty() || '/' in name) {
             message = if (name.isEmpty()) "Le nom ne peut pas être vide" else "Le nom ne peut pas contenir « / »"
             return
         }
-        val dest = FileOps.freeName(currentDir, "$name.zip")
+        val dest = FileOps.freeName(currentDir, "$name.${format.extension}")
+        val pwd = password?.takeIf { it.isNotEmpty() && format == ArchiveFormat.ZIP }
         selected.clear()
         closeSearch()
-        runOp("Archive « ${dest.name} » créée", sizeOf(sources)) { p -> Zip.compress(sources, dest, p) }
+        val done = if (pwd != null) "Archive protégée « ${dest.name} » créée" else "Archive « ${dest.name} » créée"
+        runOp(done, sizeOf(sources)) { p -> Archives.compress(sources, dest, format, pwd, p) }
     }
 
-    val canExtract: Boolean get() = selected.singleOrNull()?.let { Zip.isZip(it) } == true
+    val canExtract: Boolean get() = selected.singleOrNull()?.let { Archives.isArchive(it) } == true
 
     fun extractSelected() {
-        val zip = selected.singleOrNull()?.takeIf { Zip.isZip(it) } ?: return
-        val dest = FileOps.freeName(zip.parentFile ?: currentDir, zip.nameWithoutExtension.ifEmpty { "Archive" })
+        val archive = selected.singleOrNull()?.takeIf { Archives.isArchive(it) } ?: return
         selected.clear()
-        runOp("Extrait dans « ${dest.name} »", { Zip.uncompressedSize(zip) }) { p -> Zip.extract(zip, dest, p) }
+        extract(archive, null)
+    }
+
+    fun submitPassword(password: String) {
+        val archive = passwordRequest ?: return
+        passwordRequest = null
+        extract(archive, password)
+    }
+
+    fun cancelPassword() {
+        passwordRequest = null
+        passwordWasWrong = false
+    }
+
+    private fun extract(archive: File, password: String?) {
+        val dest = FileOps.freeName(archive.parentFile ?: currentDir, archive.nameWithoutExtension.ifEmpty { "Archive" })
+        runOp(
+            "Extrait dans « ${dest.name} »",
+            { Archives.uncompressedSize(archive, password) },
+            onError = { e ->
+                when (e) {
+                    is PasswordNeededException, is WrongPasswordException -> {
+                        passwordWasWrong = e is WrongPasswordException
+                        passwordRequest = archive
+                        true
+                    }
+                    else -> false
+                }
+            }
+        ) { p -> Archives.extract(archive, dest, password, p) }
     }
 
     // ---- F9 : rechercher ----
@@ -496,7 +605,12 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
      * Exécute [block] en arrière-plan. Si [total] est fourni (calculé en arrière-plan),
      * la barre d'avancement en pourcentage s'affiche ; sinon une barre indéterminée.
      */
-    private fun runOp(success: String, total: (() -> Long)?, block: (Progress) -> Result<Unit>) {
+    private fun runOp(
+        success: String,
+        total: (() -> Long)?,
+        onError: (Throwable) -> Boolean = { false },
+        block: (Progress) -> Result<Unit>
+    ) {
         viewModelScope.launch {
             busy = true
             cancelRequested = false
@@ -525,10 +639,16 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
             }
             busy = false
             progress = null
-            message = result.fold(
-                { success },
-                { if (it is CancelledException) "Opération annulée" else it.message ?: "Erreur inattendue" }
-            )
+            val error = result.exceptionOrNull()
+            message = when {
+                error == null -> {
+                    passwordWasWrong = false
+                    success
+                }
+                onError(error) -> if (error is WrongPasswordException) error.message else null
+                error is CancelledException -> "Opération annulée"
+                else -> error.message ?: "Erreur inattendue"
+            }
             refresh()
             if (screen == Screen.TRASH) refreshTrash()
             searchQuery?.let { if (it.isNotBlank()) runSearch(it) }
