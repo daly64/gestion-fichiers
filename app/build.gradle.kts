@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.gestionfichiers"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.0"
+        versionCode = 7
+        versionName = "2.0"
     }
 
     buildTypes {
@@ -49,5 +49,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.core:core-ktx:1.15.0")
+    // Miniatures des images et des vidéos
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt:coil-video:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

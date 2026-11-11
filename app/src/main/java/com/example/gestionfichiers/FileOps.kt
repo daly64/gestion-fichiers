@@ -1,6 +1,8 @@
 package com.example.gestionfichiers
 
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 
 /** Levée quand l'utilisateur touche « Annuler » pendant une opération (F11). */
 class CancelledException : Exception("Opération annulée")
@@ -36,11 +38,48 @@ object FileOps {
 
     const val TRASH_DIR_NAME = ".Corbeille"
 
-    /** F1 : contenu d'un dossier, dossiers d'abord puis fichiers, triés par nom. */
-    fun list(dir: File): List<File> =
+    /** F1 / EF-12 : contenu d'un dossier, dossiers d'abord puis fichiers, dans l'ordre demandé. */
+    fun list(dir: File, sortBy: SortBy = SortBy.NAME, descending: Boolean = false): List<File> =
         (dir.listFiles()?.toList() ?: emptyList())
             .filter { it.name != TRASH_DIR_NAME }
-            .sortedWith(compareBy<File>({ !it.isDirectory }, { it.name.lowercase() }))
+            .sortedWith(comparator(sortBy, descending))
+
+    /** EF-12 : dossiers toujours en premier ; à critère égal, ordre alphabétique. */
+    fun comparator(sortBy: SortBy, descending: Boolean): Comparator<File> {
+        val byName = compareBy<File> { it.name.lowercase() }
+        val key: Comparator<File> = when (sortBy) {
+            SortBy.NAME -> byName
+            SortBy.DATE -> compareBy<File> { it.lastModified() }.then(byName)
+            SortBy.SIZE -> compareBy<File> { if (it.isDirectory) 0L else it.length() }.then(byName)
+            SortBy.TYPE -> compareBy<File> { if (it.isDirectory) "" else it.extension.lowercase() }.then(byName)
+        }
+        return compareBy<File> { !it.isDirectory }.then(if (descending) key.reversed() else key)
+    }
+
+    /** Copie un flux avec avancement (partagé par la copie et les archives ZIP). */
+    fun copyStream(input: InputStream, output: OutputStream, progress: Progress, label: String) {
+        val buffer = ByteArray(64 * 1024)
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            output.write(buffer, 0, n)
+            progress.add(n.toLong(), label)
+        }
+    }
+
+    /** « Archive.zip » pris ? → « Archive (2).zip », puis « Archive (3).zip »… */
+    fun freeName(dir: File, name: String): File {
+        val first = File(dir, name)
+        if (!first.exists()) return first
+        val dot = name.lastIndexOf('.')
+        val (base, ext) = if (dot > 0) name.substring(0, dot) to name.substring(dot) else name to ""
+        var i = 2
+        while (true) {
+            val candidate = File(dir, "$base ($i)$ext")
+            if (!candidate.exists()) return candidate
+            i++
+        }
+    }
 
     /** Taille totale (récursive) d'une liste d'éléments, pour la barre d'avancement. */
     fun sizeOf(files: List<File>): Long = files.sumOf { f ->
@@ -66,15 +105,7 @@ object FileOps {
             src.listFiles()?.forEach { child -> copyWithProgress(child, File(dest, child.name), progress) }
         } else {
             src.inputStream().use { input ->
-                dest.outputStream().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        val n = input.read(buffer)
-                        if (n < 0) break
-                        output.write(buffer, 0, n)
-                        progress.add(n.toLong(), src.name)
-                    }
-                }
+                dest.outputStream().use { output -> copyStream(input, output, progress, src.name) }
             }
             dest.setLastModified(src.lastModified())
         }

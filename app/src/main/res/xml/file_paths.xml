@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <external-path name="external" path="." />
+    <!-- Cartes SD et clés USB (/storage/XXXX-XXXX) : ouverture et partage -->
+    <root-path name="storage" path="/storage" />
 </paths>

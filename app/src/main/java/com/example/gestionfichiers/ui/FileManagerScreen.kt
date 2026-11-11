@@ -3,14 +3,19 @@ package com.example.gestionfichiers.ui
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.text.format.Formatter
+import android.net.Uri
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,126 +30,136 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.RestoreFromTrash
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tab
+import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.ImageLoader
+import coil.decode.VideoFrameDecoder
 import com.example.gestionfichiers.FileManagerViewModel
+import com.example.gestionfichiers.Listing
 import com.example.gestionfichiers.OpType
-import com.example.gestionfichiers.TrashItem
+import com.example.gestionfichiers.QuickDir
+import com.example.gestionfichiers.Screen
+import com.example.gestionfichiers.SortBy
+import com.example.gestionfichiers.Volume
+import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.math.roundToInt
 import androidx.compose.foundation.lazy.grid.items as gridItems
 
-/** État du glisser-déposer (F5). Positions en coordonnées de la racine de l'écran. */
-class DragState {
-    var dragging by mutableStateOf<List<File>>(emptyList())
-    var pointer by mutableStateOf(Offset.Zero)
-    val folderBounds = mutableMapOf<File, Rect>()
-
-    val isDragging: Boolean get() = dragging.isNotEmpty()
-
-    fun target(): File? =
-        folderBounds.entries.firstOrNull { (folder, rect) ->
-            rect.contains(pointer) && folder !in dragging
-        }?.key
-
-    fun reset() {
-        dragging = emptyList()
-    }
-}
-
 @Composable
 fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    // Miniatures : images, et première seconde des vidéos
+    val thumbLoader = remember {
+        ImageLoader.Builder(context.applicationContext)
+            .components { add(VideoFrameDecoder.Factory()) }
+            .build()
+    }
 
     LaunchedEffect(Unit) { vm.refresh() }
     LaunchedEffect(vm.message) {
@@ -154,26 +169,35 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
         }
     }
 
-    if (vm.showTrash) TrashScreen(vm, snackbar) else BrowserScreen(vm, snackbar)
+    CompositionLocalProvider(LocalThumbLoader provides thumbLoader) {
+        when (vm.screen) {
+            Screen.TRASH -> TrashScreen(vm, snackbar)
+            Screen.ANALYSIS -> AnalysisScreen(vm, snackbar)
+            Screen.BROWSER -> BrowserScreen(vm, snackbar)
+        }
+    }
 }
 
 // =====================================================================
-// Écran principal : navigation, sélection, recherche
+// Écran principal : menu latéral, onglets, navigation, sélection, recherche
 // =====================================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val drag = remember { DragState() }
     var showNewFolder by remember { mutableStateOf(false) }
     var showRename by remember { mutableStateOf(false) }
     var showConfirmDelete by remember { mutableStateOf(false) }
+    var showCompress by remember { mutableStateOf(false) }
+    var showSort by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
     val selectionActive = vm.selected.isNotEmpty()
     val searchMode = vm.searchQuery != null
-    val shown = if (searchMode) vm.searchResults else vm.items
 
     BackHandler(enabled = selectionActive || searchMode || vm.canGoUp) {
         when {
@@ -182,147 +206,163 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
             else -> vm.goUp()
         }
     }
+    // Déclaré après : le menu latéral ouvert se ferme en priorité
+    BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
 
-    Box(Modifier.fillMaxSize()) {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.surface,
-            topBar = {
-                Column(Modifier.background(MaterialTheme.colorScheme.surface)) {
-                    TopAppBar(
-                        title = {
-                            when {
-                                selectionActive -> Text("${vm.selected.size} sélectionné(s)")
-                                searchMode -> SearchField(
-                                    query = vm.searchQuery.orEmpty(),
-                                    onQueryChange = vm::runSearch,
-                                    placeholder = "Rechercher dans « ${if (vm.canGoUp) vm.currentDir.name else "Stockage"} »"
-                                )
-                                else -> Column {
-                                    Text(
-                                        if (vm.canGoUp) vm.currentDir.name else "Fichiers",
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+    LaunchedEffect(drawerState.targetValue) {
+        if (drawerState.targetValue == DrawerValue.Open) vm.refreshVolumes()
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen || (!drag.isDragging && !selectionActive),
+        drawerContent = {
+            DrawerContent(vm, onDone = { scope.launch { drawerState.close() } })
+        }
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.surface,
+                topBar = {
+                    Column(Modifier.background(MaterialTheme.colorScheme.surface)) {
+                        TopAppBar(
+                            title = {
+                                when {
+                                    selectionActive -> Text("${vm.selected.size} sélectionné(s)")
+                                    searchMode -> SearchField(
+                                        query = vm.searchQuery.orEmpty(),
+                                        onQueryChange = vm::runSearch,
+                                        placeholder = "Rechercher dans « ${vm.titleOf(vm.currentDir)} »"
                                     )
-                                    Text(
-                                        "${vm.items.size} élément(s)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    else -> Column {
+                                        Text(
+                                            vm.titleOf(vm.currentDir),
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            "${vm.items.size} élément(s)",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        navigationIcon = {
-                            when {
-                                selectionActive -> IconButton(onClick = vm::clearSelection) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Annuler la sélection")
+                            },
+                            navigationIcon = {
+                                when {
+                                    selectionActive -> IconButton(onClick = vm::clearSelection) {
+                                        Icon(Icons.Filled.Close, contentDescription = "Annuler la sélection")
+                                    }
+                                    searchMode -> IconButton(onClick = vm::closeSearch) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Fermer la recherche")
+                                    }
+                                    else -> IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                        Icon(Icons.Filled.Menu, contentDescription = "Menu : stockages, accès rapide, favoris")
+                                    }
                                 }
-                                searchMode -> IconButton(onClick = vm::closeSearch) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Fermer la recherche")
-                                }
-                                vm.canGoUp -> IconButton(onClick = vm::goUp) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Dossier parent")
-                                }
-                            }
-                        },
-                        actions = {
-                            when {
-                                selectionActive -> {
-                                    if (vm.selected.size == 1) {
-                                        IconButton(onClick = { showRename = true }) {
-                                            Icon(Icons.Filled.DriveFileRenameOutline, contentDescription = "Renommer")
+                            },
+                            actions = {
+                                when {
+                                    selectionActive -> {
+                                        val single = vm.selected.singleOrNull()
+                                        if (single != null) {
+                                            IconButton(onClick = { showRename = true }) {
+                                                Icon(Icons.Filled.DriveFileRenameOutline, contentDescription = "Renommer")
+                                            }
+                                        }
+                                        if (single != null && single.isDirectory) {
+                                            val fav = vm.isFavorite(single)
+                                            IconButton(onClick = { vm.toggleFavorite(single) }) {
+                                                Icon(
+                                                    if (fav) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                                    contentDescription = if (fav) "Retirer des favoris" else "Ajouter aux favoris"
+                                                )
+                                            }
+                                        }
+                                        IconButton(onClick = { vm.selectAll() }) {
+                                            Icon(Icons.Filled.SelectAll, contentDescription = "Tout sélectionner")
                                         }
                                     }
-                                    IconButton(onClick = { vm.selectAll() }) {
-                                        Icon(Icons.Filled.SelectAll, contentDescription = "Tout sélectionner")
-                                    }
-                                }
-                                searchMode -> Unit
-                                else -> {
-                                    IconButton(onClick = vm::openSearch) {
-                                        Icon(Icons.Filled.Search, contentDescription = "Rechercher")
-                                    }
-                                    FilledTonalButton(
-                                        onClick = { showNewFolder = true },
-                                        contentPadding = PaddingValues(horizontal = 12.dp)
-                                    ) {
-                                        Icon(Icons.Filled.CreateNewFolder, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text("Dossier")
-                                    }
-                                    Box {
-                                        IconButton(onClick = { showMenu = true }) {
-                                            Icon(Icons.Filled.MoreVert, contentDescription = "Plus d'options")
+                                    searchMode -> Unit
+                                    else -> {
+                                        IconButton(onClick = vm::openSearch) {
+                                            Icon(Icons.Filled.Search, contentDescription = "Rechercher")
                                         }
-                                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                            DropdownMenuItem(
-                                                text = { Text(if (vm.gridView) "Affichage en liste" else "Affichage en grille") },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        if (vm.gridView) Icons.AutoMirrored.Filled.ViewList else Icons.Filled.GridView,
-                                                        contentDescription = null
-                                                    )
-                                                },
-                                                onClick = {
-                                                    vm.gridView = !vm.gridView
-                                                    showMenu = false
-                                                }
+                                        FilledTonalButton(
+                                            onClick = { showNewFolder = true },
+                                            contentPadding = PaddingValues(horizontal = 12.dp)
+                                        ) {
+                                            Icon(Icons.Filled.CreateNewFolder, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Dossier")
+                                        }
+                                        Box {
+                                            IconButton(onClick = { showMenu = true }) {
+                                                Icon(Icons.Filled.MoreVert, contentDescription = "Plus d'options")
+                                            }
+                                            MainMenu(
+                                                vm = vm,
+                                                expanded = showMenu,
+                                                onDismiss = { showMenu = false },
+                                                onSort = { showSort = true }
                                             )
-                                            DropdownMenuItem(
-                                                text = { Text("Corbeille") },
-                                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-                                                onClick = {
-                                                    showMenu = false
-                                                    vm.openTrash()
-                                                }
-                                            )
                                         }
                                     }
                                 }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = if (selectionActive)
-                                MaterialTheme.colorScheme.secondaryContainer
-                            else MaterialTheme.colorScheme.surface
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = if (selectionActive)
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.surface
+                            )
                         )
-                    )
-                    if (!searchMode) Breadcrumb(vm)
-                    if (vm.searching || (vm.busy && vm.progress == null)) {
-                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        if (vm.tabs.size > 1) TabsRow(vm)
+                        if (!searchMode) {
+                            Breadcrumb(vm)
+                            vm.space?.let { space ->
+                                SpaceGauge(
+                                    label = vm.volumeOf(vm.currentDir).label,
+                                    space = space,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                        if (vm.searching || (vm.busy && vm.progress == null)) {
+                            LinearProgressIndicator(Modifier.fillMaxWidth())
+                        }
                     }
-                }
-            },
-            bottomBar = {
-                val op = vm.pending
-                val p = vm.progress
-                when {
-                    p != null -> ProgressBar(p, vm.progressLabel, onCancel = vm::cancelOperation)
-                    op != null -> PasteBar(
-                        label = (if (op.type == OpType.COPY) "Copier " else "Déplacer ") +
-                            "${op.files.size} élément(s)",
-                        onPaste = vm::pasteHere,
-                        onCancel = vm::cancelPending
-                    )
-                    selectionActive -> ActionBar(
-                        onCopy = vm::startCopy,
-                        onMove = vm::startMove,
-                        onDelete = { showConfirmDelete = true }
-                    )
-                }
-            },
-            snackbarHost = { SnackbarHost(snackbar) }
-        ) { padding ->
-            if (shown.isEmpty()) {
-                when {
-                    searchMode && vm.searchQuery.isNullOrBlank() ->
-                        EmptyState(Icons.Filled.Search, "Tapez un nom pour chercher dans ce dossier et ses sous-dossiers", Modifier.fillMaxSize().padding(padding))
-                    searchMode && !vm.searching ->
-                        EmptyState(Icons.Filled.SearchOff, "Aucun résultat", Modifier.fillMaxSize().padding(padding))
-                    searchMode -> Box(Modifier.fillMaxSize())
-                    else -> EmptyState(Icons.Filled.FolderOpen, "Ce dossier est vide", Modifier.fillMaxSize().padding(padding))
-                }
-            } else {
+                },
+                bottomBar = {
+                    val op = vm.pending
+                    val p = vm.progress
+                    when {
+                        p != null -> ProgressBar(p, vm.progressLabel, onCancel = vm::cancelOperation)
+                        op != null -> PasteBar(
+                            label = (if (op.type == OpType.COPY) "Copier " else "Déplacer ") +
+                                "${op.files.size} élément(s)",
+                            onPaste = vm::pasteHere,
+                            onCancel = vm::cancelPending
+                        )
+                        selectionActive -> ActionBar(
+                            canExtract = vm.canExtract,
+                            onCopy = vm::startCopy,
+                            onMove = vm::startMove,
+                            onShare = {
+                                val files = vm.selected.toList()
+                                if (files.any { it.isDirectory }) {
+                                    vm.message = "Les dossiers ne peuvent pas être partagés directement : compressez-les d'abord en ZIP"
+                                } else {
+                                    shareFiles(context, files)
+                                }
+                            },
+                            onZip = { if (vm.canExtract) vm.extractSelected() else showCompress = true },
+                            onDelete = { showConfirmDelete = true }
+                        )
+                    }
+                },
+                snackbarHost = { SnackbarHost(snackbar) }
+            ) { padding ->
                 // Convention Android : un appui ouvre (ou coche en mode sélection),
                 // un appui long sélectionne ; appui long puis glisser déplace vers un dossier.
                 val gestures: @Composable (File) -> Modifier = { file ->
@@ -331,7 +371,7 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                         drag = drag,
                         onClick = {
                             when {
-                                selectionActive -> vm.toggle(file)
+                                vm.selected.isNotEmpty() -> vm.toggle(file)
                                 file.isDirectory -> {
                                     vm.closeSearch()
                                     vm.enter(file)
@@ -352,76 +392,54 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                         }
                     )
                 }
+                val contentModifier = Modifier.fillMaxSize().padding(padding)
 
-                if (vm.gridView && !searchMode) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 96.dp),
-                        modifier = Modifier.fillMaxSize().padding(padding),
-                        contentPadding = PaddingValues(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        gridItems(shown, key = { it.absolutePath }) { file ->
-                            FileTile(
-                                file = file,
-                                selected = file in vm.selected,
-                                isDropTarget = drag.isDragging && drag.target() == file,
-                                gestures = gestures(file)
-                            )
-                        }
-                    }
+                if (searchMode) {
+                    SearchResults(vm, drag, gestures, contentModifier)
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(padding),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        if (searchMode) {
-                            item {
-                                Text(
-                                    if (shown.size >= 500) "500 premiers résultats" else "${shown.size} résultat(s)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                        items(shown, key = { it.absolutePath }) { file ->
-                            FileRow(
-                                file = file,
-                                selected = file in vm.selected,
-                                isDropTarget = drag.isDragging && drag.target() == file,
-                                gestures = gestures(file),
-                                location = if (searchMode) vm.displayPath(file.parentFile) else null
-                            )
-                        }
+                    // Animation douce au passage d'un dossier à l'autre (cahier § 4.5)
+                    AnimatedContent(
+                        targetState = vm.listing,
+                        contentKey = { it.dir },
+                        transitionSpec = {
+                            val deeper = targetState.dir.absolutePath
+                                .startsWith(initialState.dir.absolutePath + File.separator)
+                            val sign = if (deeper) 1 else -1
+                            (slideInHorizontally(tween(260)) { w -> sign * w / 4 } + fadeIn(tween(260)))
+                                .togetherWith(slideOutHorizontally(tween(200)) { w -> -sign * w / 4 } + fadeOut(tween(200)))
+                        },
+                        modifier = contentModifier,
+                        label = "dossier"
+                    ) { listing ->
+                        FolderContent(vm, listing, drag, gestures)
                     }
                 }
             }
-        }
 
-        // Étiquette qui suit le doigt pendant le glisser-déposer
-        if (drag.isDragging) {
-            Card(
-                modifier = Modifier.offset {
-                    IntOffset(drag.pointer.x.roundToInt() - 200, drag.pointer.y.roundToInt() - 90)
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Étiquette qui suit le doigt pendant le glisser-déposer
+            if (drag.isDragging) {
+                Card(
+                    modifier = Modifier.offset {
+                        IntOffset(drag.pointer.x.roundToInt() - 200, drag.pointer.y.roundToInt() - 90)
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {
-                    Icon(Icons.Filled.DriveFileMove, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (drag.dragging.size == 1) drag.dragging.first().name
-                        else "${drag.dragging.size} éléments",
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.DriveFileMove, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (drag.dragging.size == 1) drag.dragging.first().name
+                            else "${drag.dragging.size} éléments",
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -438,6 +456,34 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
                 showNewFolder = false
             },
             onDismiss = { showNewFolder = false }
+        )
+    }
+
+    if (showCompress) {
+        NameDialog(
+            title = "Compresser en ZIP",
+            icon = Icons.Filled.FolderZip,
+            initial = remember { vm.suggestedZipName() },
+            confirmLabel = "Compresser",
+            label = "Nom de l'archive",
+            suffix = ".zip",
+            onConfirm = { name ->
+                vm.compressSelected(name)
+                showCompress = false
+            },
+            onDismiss = { showCompress = false }
+        )
+    }
+
+    if (showSort) {
+        SortDialog(
+            current = vm.sortBy,
+            descending = vm.sortDescending,
+            onApply = { by, desc ->
+                vm.setSort(by, desc)
+                showSort = false
+            },
+            onDismiss = { showSort = false }
         )
     }
 
@@ -476,6 +522,390 @@ private fun BrowserScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState)
     }
 }
 
+/** Contenu d'un dossier en grille ou en liste, avec déplacement animé des éléments. */
+@Composable
+private fun FolderContent(
+    vm: FileManagerViewModel,
+    listing: Listing,
+    drag: DragState,
+    gestures: @Composable (File) -> Modifier
+) {
+    val files = listing.files
+    if (files.isEmpty()) {
+        EmptyState(Icons.Filled.FolderOpen, "Ce dossier est vide", Modifier.fillMaxSize())
+        return
+    }
+    if (vm.gridView) {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 96.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            gridItems(files, key = { it.absolutePath }) { file ->
+                FileTile(
+                    file = file,
+                    selected = file in vm.selected,
+                    isDropTarget = drag.isDragging && drag.target() == file,
+                    gestures = gestures(file),
+                    modifier = Modifier.animateItem()
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 8.dp)
+        ) {
+            items(files, key = { it.absolutePath }) { file ->
+                FileRow(
+                    file = file,
+                    selected = file in vm.selected,
+                    isDropTarget = drag.isDragging && drag.target() == file,
+                    gestures = gestures(file),
+                    modifier = Modifier.animateItem()
+                )
+            }
+        }
+    }
+}
+
+/** F9 : résultats de recherche, toujours en liste avec le dossier de chaque élément. */
+@Composable
+private fun SearchResults(
+    vm: FileManagerViewModel,
+    drag: DragState,
+    gestures: @Composable (File) -> Modifier,
+    modifier: Modifier
+) {
+    val shown = vm.searchResults
+    when {
+        shown.isEmpty() && vm.searchQuery.isNullOrBlank() ->
+            EmptyState(Icons.Filled.Search, "Tapez un nom pour chercher dans ce dossier et ses sous-dossiers", modifier)
+        shown.isEmpty() && !vm.searching ->
+            EmptyState(Icons.Filled.SearchOff, "Aucun résultat", modifier)
+        shown.isEmpty() -> Box(modifier)
+        else -> LazyColumn(modifier = modifier, contentPadding = PaddingValues(vertical = 8.dp)) {
+            item {
+                Text(
+                    if (shown.size >= 500) "500 premiers résultats" else "${shown.size} résultat(s)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+            }
+            items(shown, key = { it.absolutePath }) { file ->
+                FileRow(
+                    file = file,
+                    selected = file in vm.selected,
+                    isDropTarget = drag.isDragging && drag.target() == file,
+                    gestures = gestures(file),
+                    location = vm.displayPath(file.parentFile),
+                    modifier = Modifier.animateItem()
+                )
+            }
+        }
+    }
+}
+
+/** Menu « ⋮ » de l'écran principal. */
+@Composable
+private fun MainMenu(vm: FileManagerViewModel, expanded: Boolean, onDismiss: () -> Unit, onSort: () -> Unit) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text("Trier : ${vm.sortBy.label.lowercase()}${if (vm.sortDescending) " ↓" else " ↑"}") },
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
+            onClick = { onDismiss(); onSort() }
+        )
+        DropdownMenuItem(
+            text = { Text(if (vm.gridView) "Affichage en liste" else "Affichage en grille") },
+            leadingIcon = {
+                Icon(
+                    if (vm.gridView) Icons.AutoMirrored.Filled.ViewList else Icons.Filled.GridView,
+                    contentDescription = null
+                )
+            },
+            onClick = { onDismiss(); vm.toggleView() }
+        )
+        DropdownMenuItem(
+            text = { Text("Nouvel onglet") },
+            leadingIcon = { Icon(Icons.Filled.Tab, contentDescription = null) },
+            onClick = { onDismiss(); vm.newTab() }
+        )
+        val fav = vm.isFavorite(vm.currentDir)
+        DropdownMenuItem(
+            text = { Text(if (fav) "Retirer des favoris" else "Ajouter aux favoris") },
+            leadingIcon = { Icon(if (fav) Icons.Filled.Star else Icons.Outlined.StarOutline, contentDescription = null) },
+            onClick = { onDismiss(); vm.toggleFavorite(vm.currentDir) }
+        )
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text("Analyse du stockage") },
+            leadingIcon = { Icon(Icons.Filled.Analytics, contentDescription = null) },
+            onClick = { onDismiss(); vm.openAnalysis() }
+        )
+        DropdownMenuItem(
+            text = { Text("Corbeille") },
+            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+            onClick = { onDismiss(); vm.openTrash() }
+        )
+    }
+}
+
+// =====================================================================
+// EF-19 : onglets
+// =====================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TabsRow(vm: FileManagerViewModel) {
+    PrimaryScrollableTabRow(
+        selectedTabIndex = vm.tabIndex,
+        edgePadding = 8.dp,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        vm.tabs.forEachIndexed { index, dir ->
+            val selected = index == vm.tabIndex
+            Tab(
+                selected = selected,
+                onClick = { vm.selectTab(index) },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            vm.titleOf(dir),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 140.dp)
+                        )
+                        if (selected) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Fermer l'onglet",
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .clickable { vm.closeTab(index) }
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+// =====================================================================
+// Menu latéral : stockages, accès rapide, favoris, outils
+// =====================================================================
+
+@Composable
+private fun DrawerContent(vm: FileManagerViewModel, onDone: () -> Unit) {
+    val context = LocalContext.current
+    ModalDrawerSheet(Modifier.widthIn(max = 320.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+            Text(
+                "Gestion Fichiers",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp)
+            )
+
+            DrawerSection("Stockages")
+            vm.volumes.forEach { volume ->
+                val space = remember(volume) { vm.spaceOf(volume) }
+                NavigationDrawerItem(
+                    icon = { Icon(volumeIcon(volume), contentDescription = null) },
+                    label = {
+                        Column(Modifier.padding(vertical = 4.dp)) {
+                            Text(volume.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (space != null) {
+                                Text(
+                                    "${formatSize(context, space.free)} libres sur ${formatSize(context, space.total)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                LinearProgressIndicator(
+                                    progress = { space.usedFraction },
+                                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                                    gapSize = 0.dp,
+                                    drawStopIndicator = {}
+                                )
+                            }
+                        }
+                    },
+                    selected = vm.currentDir == volume.root,
+                    onClick = { vm.openFromDrawer(volume.root); onDone() }
+                )
+            }
+
+            if (vm.quickDirs.isNotEmpty()) {
+                DrawerSection("Accès rapide")
+                vm.quickDirs.forEach { quick ->
+                    NavigationDrawerItem(
+                        icon = { Icon(quickIcon(quick), contentDescription = null) },
+                        label = { Text(quick.label) },
+                        selected = vm.currentDir == quick.dir,
+                        onClick = { vm.openFromDrawer(quick.dir); onDone() }
+                    )
+                }
+            }
+
+            DrawerSection("Favoris")
+            if (vm.favorites.isEmpty()) {
+                Text(
+                    "Ajoutez un dossier depuis le menu ⋮ ou en le sélectionnant puis en touchant l'étoile.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+            vm.favorites.toList().forEach { path ->
+                val dir = File(path)
+                val exists = remember(path) { dir.isDirectory }
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            Icons.Filled.Star,
+                            contentDescription = null,
+                            tint = if (exists) Color(0xFFF9A825) else MaterialTheme.colorScheme.outline
+                        )
+                    },
+                    label = {
+                        Column {
+                            Text(vm.titleOf(dir), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (exists) vm.displayPath(dir.parentFile) else "Introuvable",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (exists) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    badge = {
+                        IconButton(onClick = { vm.removeFavorite(path) }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Filled.Close, contentDescription = "Retirer des favoris", modifier = Modifier.size(18.dp))
+                        }
+                    },
+                    selected = vm.currentDir == dir,
+                    onClick = { vm.openFromDrawer(dir); onDone() }
+                )
+            }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            DrawerSection("Outils")
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Filled.Analytics, contentDescription = null) },
+                label = { Text("Analyse du stockage") },
+                selected = false,
+                onClick = { onDone(); vm.openAnalysis() }
+            )
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                label = { Text("Corbeille") },
+                selected = false,
+                onClick = { onDone(); vm.openTrash() }
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun DrawerSection(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 6.dp)
+    )
+}
+
+private fun volumeIcon(volume: Volume): ImageVector = when {
+    !volume.removable -> Icons.Filled.PhoneAndroid
+    volume.isUsb -> Icons.Filled.Usb
+    else -> Icons.Filled.SdCard
+}
+
+private fun quickIcon(quick: QuickDir): ImageVector = when (quick) {
+    QuickDir.DOWNLOADS -> Icons.Filled.Download
+    QuickDir.DCIM -> Icons.Filled.PhotoCamera
+    QuickDir.PICTURES -> Icons.Filled.Image
+    QuickDir.DOCUMENTS -> Icons.Filled.Description
+    QuickDir.MUSIC -> Icons.Filled.MusicNote
+    QuickDir.MOVIES -> Icons.Filled.VideoLibrary
+}
+
+// =====================================================================
+// EF-12 : tri
+// =====================================================================
+
+@Composable
+private fun SortDialog(
+    current: SortBy,
+    descending: Boolean,
+    onApply: (SortBy, Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var by by remember { mutableStateOf(current) }
+    var desc by remember { mutableStateOf(descending) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
+        title = { Text("Trier par") },
+        text = {
+            Column {
+                SortBy.entries.forEach { option ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .selectable(selected = by == option, role = Role.RadioButton, onClick = { by = option })
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = by == option, onClick = null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(option.label)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = !desc, onClick = { desc = false }, label = { Text(ascendingLabel(by)) })
+                    FilterChip(selected = desc, onClick = { desc = true }, label = { Text(descendingLabel(by)) })
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Les dossiers restent toujours avant les fichiers.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onApply(by, desc) }) { Text("Appliquer") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+    )
+}
+
+private fun ascendingLabel(by: SortBy) = when (by) {
+    SortBy.NAME, SortBy.TYPE -> "A → Z"
+    SortBy.DATE -> "Plus anciens"
+    SortBy.SIZE -> "Plus petits"
+}
+
+private fun descendingLabel(by: SortBy) = when (by) {
+    SortBy.NAME, SortBy.TYPE -> "Z → A"
+    SortBy.DATE -> "Plus récents"
+    SortBy.SIZE -> "Plus gros"
+}
+
+// =====================================================================
+// Composants communs
+// =====================================================================
+
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit, placeholder: String) {
     val focus = remember { FocusRequester() }
@@ -502,219 +932,41 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, placehol
     )
 }
 
-// =====================================================================
-// Écran corbeille (F10)
-// =====================================================================
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-private fun TrashScreen(vm: FileManagerViewModel, snackbar: SnackbarHostState) {
-    var confirmForever by remember { mutableStateOf(false) }
-    var confirmEmpty by remember { mutableStateOf(false) }
-    val selectionActive = vm.trashSelected.isNotEmpty()
-
-    BackHandler {
-        if (selectionActive) vm.trashSelected.clear() else vm.closeTrash()
-    }
-
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                if (selectionActive) "${vm.trashSelected.size} sélectionné(s)" else "Corbeille",
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            if (!selectionActive) {
-                                Text(
-                                    "Éléments effacés automatiquement après 30 jours",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            if (selectionActive) vm.trashSelected.clear() else vm.closeTrash()
-                        }) {
-                            Icon(
-                                if (selectionActive) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Retour"
-                            )
-                        }
-                    },
-                    actions = {
-                        if (!selectionActive && vm.trashItems.isNotEmpty()) {
-                            TextButton(onClick = { confirmEmpty = true }) {
-                                Icon(Icons.Filled.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Vider")
-                            }
-                        }
-                    }
-                )
-                if (vm.busy && vm.progress == null) LinearProgressIndicator(Modifier.fillMaxWidth())
-            }
-        },
-        bottomBar = {
-            val p = vm.progress
-            when {
-                p != null -> ProgressBar(p, vm.progressLabel, onCancel = vm::cancelOperation)
-                selectionActive -> BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        ActionButton("Restaurer", vm::restoreSelected) {
-                            Icon(Icons.Filled.RestoreFromTrash, null)
-                        }
-                        ActionButton("Supprimer définitivement", { confirmForever = true }) {
-                            Icon(Icons.Filled.DeleteForever, null, tint = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbar) }
-    ) { padding ->
-        if (vm.trashItems.isEmpty()) {
-            EmptyState(Icons.Outlined.Delete, "La corbeille est vide", Modifier.fillMaxSize().padding(padding))
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp)
-            ) {
-                items(vm.trashItems, key = { it.file.absolutePath }) { item ->
-                    TrashRow(
-                        item,
-                        selected = item in vm.trashSelected,
-                        onClick = { vm.toggleTrash(item) }
-                    )
-                }
-            }
-        }
-    }
-
-    if (confirmForever) {
-        AlertDialog(
-            onDismissRequest = { confirmForever = false },
-            icon = { Icon(Icons.Filled.DeleteForever, contentDescription = null) },
-            title = { Text("Supprimer définitivement ${vm.trashSelected.size} élément(s) ?") },
-            text = { Text("Ces éléments ne pourront plus être récupérés.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.deleteForeverSelected()
-                    confirmForever = false
-                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { confirmForever = false }) { Text("Annuler") } }
-        )
-    }
-
-    if (confirmEmpty) {
-        AlertDialog(
-            onDismissRequest = { confirmEmpty = false },
-            icon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
-            title = { Text("Vider la corbeille ?") },
-            text = { Text("Les ${vm.trashItems.size} élément(s) seront supprimés définitivement.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.emptyTrash()
-                    confirmEmpty = false
-                }) { Text("Vider", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { confirmEmpty = false }) { Text("Annuler") } }
-        )
-    }
-}
-
-private val trashDateFormat = SimpleDateFormat("d MMM yyyy 'à' HH:mm", Locale.FRENCH)
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun TrashRow(item: TrashItem, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val origin = File(item.originalPath).parent.orEmpty()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) colors.secondaryContainer else colors.surface)
-            .combinedClickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-            Icon(
-                if (selected) Icons.Filled.CheckCircle else iconFor(item.file),
-                contentDescription = null,
-                modifier = Modifier.size(36.dp),
-                tint = when {
-                    selected -> colors.primary
-                    item.file.isDirectory -> Color(0xFFF9A825)
-                    else -> colors.onSurfaceVariant
-                }
-            )
-        }
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(item.displayName, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                "Supprimé le " + trashDateFormat.format(Date(item.deletedAt)),
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-            if (origin.isNotEmpty()) {
-                Text(
-                    "Depuis $origin",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-// =====================================================================
-// Composants communs
-// =====================================================================
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Breadcrumb(vm: FileManagerViewModel) {
     val parts = vm.breadcrumb()
+    val top = vm.volumeRoot
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        items(parts) { dir ->
+        items(parts, key = { it.absolutePath }) { dir ->
             val isLast = dir == parts.last()
-            FilterChip(
-                selected = isLast,
-                onClick = { vm.enter(dir) },
-                label = { Text(if (dir == vm.root) "Stockage" else dir.name) },
-                leadingIcon = if (dir == vm.root) {
-                    { Icon(Icons.Filled.SdStorage, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                } else null
-            )
-            if (!isLast) {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.animateItem()) {
+                FilterChip(
+                    selected = isLast,
+                    onClick = { vm.enter(dir) },
+                    label = { Text(if (dir == top) vm.titleOf(dir) else dir.name) },
+                    leadingIcon = if (dir == top) {
+                        { Icon(Icons.Filled.SdStorage, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null
                 )
+                if (!isLast) {
+                    Icon(
+                        Icons.Filled.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EmptyState(icon: ImageVector, text: String, modifier: Modifier) {
+internal fun EmptyState(icon: ImageVector, text: String, modifier: Modifier) {
     Column(
         modifier = modifier.padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -726,170 +978,25 @@ private fun EmptyState(icon: ImageVector, text: String, modifier: Modifier) {
     }
 }
 
-private val dateFormat = SimpleDateFormat("d MMM yyyy", Locale.FRENCH)
-
-private fun iconFor(file: File): ImageVector = when {
-    file.isDirectory -> Icons.Filled.Folder
-    else -> when (file.extension.lowercase()) {
-        "jpg", "jpeg", "png", "gif", "webp", "heic", "bmp" -> Icons.Filled.Image
-        "mp4", "mkv", "avi", "mov", "webm", "3gp" -> Icons.Filled.Movie
-        "mp3", "wav", "ogg", "m4a", "flac", "aac" -> Icons.Filled.MusicNote
-        "pdf" -> Icons.Filled.PictureAsPdf
-        else -> Icons.Filled.Description
-    }
-}
-
-/**
- * Gestes communs à la grille et à la liste : appui = ouvrir (ou cocher en mode sélection),
- * appui long = sélectionner, appui long puis glisser = déplacer vers un dossier.
- */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Modifier.fileGestures(
-    file: File,
-    drag: DragState,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onDragStart: () -> Unit,
-    onDrop: () -> Unit
-): Modifier {
-    var origin by remember(file) { mutableStateOf(Offset.Zero) }
-    DisposableEffect(file) {
-        onDispose { drag.folderBounds.remove(file) }
-    }
-    return this
-        .onGloballyPositioned { coords ->
-            origin = coords.positionInRoot()
-            if (file.isDirectory) drag.folderBounds[file] = coords.boundsInRoot()
-        }
-        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-        // Placé après combinedClickable : reçoit les événements en premier
-        .pointerInput(file) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = { offset ->
-                    drag.pointer = origin + offset
-                    onDragStart()
-                },
-                onDrag = { change, amount ->
-                    change.consume()
-                    drag.pointer += amount
-                },
-                onDragEnd = onDrop,
-                onDragCancel = { drag.reset() }
-            )
-        }
-}
-
-/** Icône du fichier, sans arrière-plan. Une coche remplace l'icône si l'élément est sélectionné. */
-@Composable
-private fun FileIconBadge(file: File, selected: Boolean, size: Dp, iconSize: Dp) {
-    val colors = MaterialTheme.colorScheme
-    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
-        Icon(
-            if (selected) Icons.Filled.CheckCircle else iconFor(file),
-            contentDescription = null,
-            modifier = Modifier.size(iconSize),
-            tint = when {
-                selected -> colors.primary
-                file.isDirectory -> Color(0xFFF9A825)
-                else -> colors.onSurfaceVariant
-            }
-        )
-    }
-}
-
-/** Case de la grille, style explorateur Windows : grande icône, nom en dessous. */
-@Composable
-private fun FileTile(file: File, selected: Boolean, isDropTarget: Boolean, gestures: Modifier) {
-    val colors = MaterialTheme.colorScheme
-    val bg = when {
-        isDropTarget -> colors.primaryContainer
-        selected -> colors.secondaryContainer
-        else -> Color.Transparent
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .then(gestures)
-            .padding(vertical = 10.dp, horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        FileIconBadge(file, selected, size = 60.dp, iconSize = 56.dp)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            file.name,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-/** Ligne de la liste : icône, nom, détails ; en recherche, le dossier où se trouve l'élément. */
-@Composable
-private fun FileRow(
-    file: File,
-    selected: Boolean,
-    isDropTarget: Boolean,
-    gestures: Modifier,
-    location: String? = null
+private fun ActionBar(
+    canExtract: Boolean,
+    onCopy: () -> Unit,
+    onMove: () -> Unit,
+    onShare: () -> Unit,
+    onZip: () -> Unit,
+    onDelete: () -> Unit
 ) {
-    val context = LocalContext.current
-    val colors = MaterialTheme.colorScheme
-    val bg = when {
-        isDropTarget -> colors.primaryContainer
-        selected -> colors.secondaryContainer
-        else -> colors.surface
-    }
-    val details = if (file.isDirectory) {
-        "${file.list()?.size ?: 0} élément(s)"
-    } else {
-        Formatter.formatShortFileSize(context, file.length()) + "  ·  " +
-            dateFormat.format(Date(file.lastModified()))
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(bg)
-            .then(gestures)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        FileIconBadge(file, selected, size = 44.dp, iconSize = 36.dp)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                file.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (file.isDirectory) FontWeight.Medium else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(details, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            if (location != null) {
-                Text(
-                    location,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActionBar(onCopy: () -> Unit, onMove: () -> Unit, onDelete: () -> Unit) {
     BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ActionButton("Copier", onCopy) { Icon(Icons.Filled.ContentCopy, null) }
             ActionButton("Déplacer", onMove) { Icon(Icons.Filled.DriveFileMove, null) }
+            ActionButton("Partager", onShare) { Icon(Icons.Filled.Share, null) }
+            if (canExtract) {
+                ActionButton("Extraire", onZip) { Icon(Icons.Filled.Unarchive, null) }
+            } else {
+                ActionButton("ZIP", onZip) { Icon(Icons.Filled.FolderZip, null) }
+            }
             ActionButton("Supprimer", onDelete) {
                 Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error)
             }
@@ -898,11 +1005,20 @@ private fun ActionBar(onCopy: () -> Unit, onMove: () -> Unit, onDelete: () -> Un
 }
 
 @Composable
-private fun RowScope.ActionButton(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
-    TextButton(onClick = onClick, modifier = Modifier.weight(1f)) {
+internal fun RowScope.ActionButton(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.weight(1f),
+        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp)
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             icon()
-            Text(label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
         }
     }
 }
@@ -926,7 +1042,7 @@ private fun PasteBar(label: String, onPaste: () -> Unit, onCancel: () -> Unit) {
 
 /** F11 : barre d'avancement avec pourcentage, fichier en cours et bouton Annuler. */
 @Composable
-private fun ProgressBar(progress: Float, label: String, onCancel: () -> Unit) {
+internal fun ProgressBar(progress: Float, label: String, onCancel: () -> Unit) {
     BottomAppBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.weight(1f).padding(start = 16.dp, end = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -957,22 +1073,28 @@ private fun NameDialog(
     initial: String,
     confirmLabel: String,
     onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    label: String = "Nom",
+    suffix: String? = null
 ) {
-    var name by remember { mutableStateOf(initial) }
+    var value by remember { mutableStateOf(TextFieldValue(initial, selection = TextRange(0, initial.length))) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(icon, contentDescription = null) },
         title = { Text(title) },
         text = {
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
+                value = value,
+                onValueChange = { value = it },
                 singleLine = true,
-                label = { Text("Nom") }
+                label = { Text(label) },
+                suffix = suffix?.let { s -> { Text(s) } },
+                modifier = Modifier.focusRequester(focus)
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text(confirmLabel) } },
+        confirmButton = { TextButton(onClick = { onConfirm(value.text) }) { Text(confirmLabel) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
     )
 }
@@ -1002,18 +1124,52 @@ private fun RenameDialog(file: File, onRename: (String) -> Unit, onDismiss: () -
     )
 }
 
+// =====================================================================
+// Ouvrir et partager (F2, EF-13)
+// =====================================================================
+
+private fun uriFor(context: Context, file: File): Uri =
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+private fun mimeOf(file: File): String =
+    MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase()) ?: "*/*"
+
 /** F2 : ouvrir un fichier avec une application du téléphone. */
 private fun openFile(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val mime = MimeTypeMap.getSingleton()
-        .getMimeTypeFromExtension(file.extension.lowercase()) ?: "*/*"
     val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, mime)
+        setDataAndType(uriFor(context, file), mimeOf(file))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
         Toast.makeText(context, "Aucune application pour ouvrir ce fichier", Toast.LENGTH_SHORT).show()
+    } catch (e: IllegalArgumentException) {
+        Toast.makeText(context, "Ce fichier ne peut pas être ouvert depuis cet emplacement", Toast.LENGTH_SHORT).show()
+    }
+}
+
+/** EF-13 : envoyer un ou plusieurs fichiers vers une autre application. */
+private fun shareFiles(context: Context, files: List<File>) {
+    try {
+        val uris = files.map { uriFor(context, it) }
+        val mimes = files.map(::mimeOf).distinct()
+        // Type commun : « image/* » pour plusieurs images, « */* » pour un mélange
+        val type = when {
+            mimes.size == 1 -> mimes.first()
+            mimes.map { it.substringBefore('/') }.distinct().size == 1 -> mimes.first().substringBefore('/') + "/*"
+            else -> "*/*"
+        }
+        val intent = if (uris.size == 1) {
+            Intent(Intent.ACTION_SEND).apply { putExtra(Intent.EXTRA_STREAM, uris.first()) }
+        } else {
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply { putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris)) }
+        }.apply {
+            this.type = type
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Partager ${if (files.size == 1) files.first().name else "${files.size} fichiers"}"))
+    } catch (e: Exception) {
+        Toast.makeText(context, "Partage impossible : ${e.message ?: "erreur inattendue"}", Toast.LENGTH_SHORT).show()
     }
 }
