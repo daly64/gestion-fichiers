@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Produit** | Gestion Fichiers, gestionnaire de fichiers pour Android |
-| **Version** | 2.3 |
+| **Version** | 2.4 |
 | **Plateforme** | Android 8.0 (API 26) et versions ultérieures |
 | **Technologie** | Kotlin, Jetpack Compose, Material 3 |
 | **Date** | 11 novembre 2026 |
@@ -47,12 +47,13 @@ Ce document décrit les fonctionnalités de l'application Gestion Fichiers, ses 
 | EF-21 | Archives protégées | Créer un ZIP protégé par mot de passe ; extraire un ZIP, 7Z ou RAR protégé. | Chiffrement AES-256, mot de passe de 4 caractères minimum, affichable. À l'extraction, le mot de passe est demandé seulement si l'archive est protégée, et redemandé s'il est faux. Aucun mot de passe n'est enregistré. |
 | EF-22 | Double volet | Sur un écran large (tablette, téléphone en paysage), afficher deux dossiers côte à côte. | Activé par défaut, désactivable dans le menu. Chaque volet affiche un onglet ; un appui dans un volet le rend actif. « Copier → » et « Déplacer → » envoient directement la sélection dans le dossier de l'autre volet. Glisser un élément dans l'autre volet le déplace. |
 | EF-23 | Mises à jour | Vérifier s'il existe une version plus récente et la télécharger. | Vérification automatique au plus une fois par jour, silencieuse sans connexion ; vérification manuelle depuis le menu latéral, avec la version installée. Une version peut être ignorée. Le fichier se télécharge dans le navigateur et s'installe par-dessus l'ancienne version, en conservant favoris et réglages. |
+| EF-24 | Plein écran | Masquer la barre d'état et la barre de navigation du téléphone. | Activé ou désactivé depuis le menu ⋮, conservé entre deux lancements. En plein écran, un glissement depuis le haut ou le bas fait réapparaître les barres un instant. |
 
 ## 4. Interface et interactions
 
 ### 4.1 Écran principal
 
-- **Barre supérieure** : bouton du menu latéral, nom du dossier et nombre d'éléments, recherche, bouton « Dossier », menu (tri, affichage grille ou liste, double volet sur écran large, nouvel onglet, ajouter aux favoris, analyse du stockage, corbeille). En mode sélection : compteur, renommer, favori, tout sélectionner.
+- **Barre supérieure** : bouton du menu latéral, nom du dossier et nombre d'éléments, recherche, bouton « Dossier », menu (tri, affichage grille ou liste, plein écran, double volet sur écran large, nouvel onglet, ajouter aux favoris, analyse du stockage, corbeille). En mode sélection : compteur, renommer, favori, tout sélectionner.
 - **Onglets** : affichés sous la barre dès qu'il y a plus d'un onglet.
 - **Fil d'Ariane** : chemin du dossier courant, du stockage au dossier ouvert.
 - **Jauge d'espace** : espace utilisé et espace libre du stockage courant.
@@ -105,7 +106,7 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 
 Référence : planche « Gestion Fichiers — identité visuelle » (identité, composants, écrans).
 
-- **Icône** : dossier blanc devant deux fiches rangées, pastille menthe avec une coche, sur fond cobalt. Aplats uniquement. Version thématique monochrome pour Android 13 et plus.
+- **Icône** : dossier blanc compact (56 × 34 sur la grille de 108) devant deux fiches rangées, pastille menthe avec une coche, sur fond cobalt. Aplats uniquement. Version thématique monochrome pour Android 13 et plus.
 - **Logo** : « gestion**fichiers** » en Manrope ExtraBold, en minuscules, « fichiers » en cobalt.
 - **Couleurs** : cobalt #2D5BFF (marque, actions), menthe #18C29C (succès, « à jour »), orange #FFB547 (alerte), rouge #D93838 (danger) ; neutres de « brume » #F3F6FC à « nuit » #0B0F1A. Les couleurs du téléphone (Android 12+) ne sont pas utilisées.
 - **Typographie** : Manrope, intégrée à l'application. Titre 22–26/800, section 18/700, corps 15/500, détail 12/500, étiquette 11/700.
@@ -154,6 +155,7 @@ Référence : planche « Gestion Fichiers — identité visuelle » (identité, 
 | 2.1 | Double volet sur écran large, archives 7Z et RAR, ZIP protégé par mot de passe. |
 | 2.2 | Badge d'extension coloré, vérification des mises à jour, signature stable, identifiant définitif. |
 | 2.3 | Identité visuelle « Cobalt net » : icône, couleurs, Manrope, composants, écran de démarrage. |
+| 2.4 | Plein écran ; dossier de l'icône réduit. |
 
 ## Annexe — Organisation du code
 

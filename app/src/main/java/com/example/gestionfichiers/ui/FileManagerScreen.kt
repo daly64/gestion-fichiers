@@ -56,6 +56,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import com.example.gestionfichiers.ArchiveFormat
 import com.example.gestionfichiers.UpdateInfo
 import com.example.gestionfichiers.R
+import com.example.gestionfichiers.MainActivity
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -190,6 +193,8 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
     }
 
     LaunchedEffect(Unit) { vm.refresh() }
+    // EF-24 : plein écran
+    LaunchedEffect(vm.fullScreen) { (context as? MainActivity)?.applyFullScreen(vm.fullScreen) }
     LaunchedEffect(vm.message) {
         vm.message?.let {
             snackbar.showSnackbar(it)
@@ -790,6 +795,13 @@ private fun MainMenu(vm: FileManagerViewModel, expanded: Boolean, wide: Boolean,
                 onClick = { onDismiss(); vm.toggleDualPane() }
             )
         }
+        DropdownMenuItem(
+            text = { Text(if (vm.fullScreen) "Quitter le plein écran" else "Plein écran") },
+            leadingIcon = {
+                Icon(if (vm.fullScreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen, contentDescription = null)
+            },
+            onClick = { onDismiss(); vm.toggleFullScreen() }
+        )
         DropdownMenuItem(
             text = { Text("Nouvel onglet") },
             leadingIcon = { Icon(Icons.Filled.Tab, contentDescription = null) },

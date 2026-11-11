@@ -30,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.example.gestionfichiers.ui.FileManagerScreen
 import com.example.gestionfichiers.ui.GestionFichiersTheme
 
@@ -53,6 +56,26 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * EF-24 : masque ou affiche les barres du système. En plein écran, un glissement
+     * depuis le haut ou le bas les fait réapparaître un instant.
+     */
+    fun applyFullScreen(enabled: Boolean) {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        if (enabled) {
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Le système réaffiche les barres en revenant dans l'application : on les masque à nouveau
+        if (hasFocus) applyFullScreen(Prefs(this).fullScreen)
     }
 
     override fun onResume() {

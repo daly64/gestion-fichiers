@@ -32,6 +32,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_DUAL, true)
         set(value) = sp.edit().putBoolean(KEY_DUAL, value).apply()
 
+    /** EF-24 : plein écran (barres du système masquées). */
+    var fullScreen: Boolean
+        get() = sp.getBoolean(KEY_FULLSCREEN, false)
+        set(value) = sp.edit().putBoolean(KEY_FULLSCREEN, value).apply()
+
     /** EF-23 : dernière vérification automatique (millisecondes) et version que l'utilisateur a choisi d'ignorer. */
     var lastUpdateCheck: Long
         get() = sp.getLong(KEY_LAST_CHECK, 0L)
@@ -55,6 +60,7 @@ class Prefs(context: Context) {
         const val KEY_GRID = "grid_view"
         const val KEY_FAVORITES = "favorites"
         const val KEY_DUAL = "dual_pane"
+        const val KEY_FULLSCREEN = "full_screen"
         const val KEY_LAST_CHECK = "last_update_check"
         const val KEY_SKIPPED = "skipped_version"
     }

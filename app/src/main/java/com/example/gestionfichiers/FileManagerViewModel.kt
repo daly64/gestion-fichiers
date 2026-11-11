@@ -257,6 +257,16 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
         searchQuery?.let { if (it.isNotBlank()) runSearch(it) }
     }
 
+    /** EF-24 : plein écran, conservé entre deux lancements. */
+    var fullScreen by mutableStateOf(prefs.fullScreen)
+        private set
+
+    fun toggleFullScreen() {
+        fullScreen = !fullScreen
+        prefs.fullScreen = fullScreen
+        message = if (fullScreen) "Plein écran : glissez depuis un bord pour afficher les barres" else null
+    }
+
     fun toggleView() {
         gridView = !gridView
         prefs.gridView = gridView
