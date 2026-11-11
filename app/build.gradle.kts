@@ -9,20 +9,50 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.gestionfichiers"
+        // Identifiant définitif (« com.example » est réservé aux exemples et mal vu par Google)
+        applicationId = "io.github.daly64.gestionfichiers"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "2.1"
+        versionCode = 9
+        versionName = "2.2"
+        resValue("string", "app_name", "Gestion Fichiers")
+    }
+
+    // Clé de publication : fournie par GitHub Actions (secrets), jamais stockée dans le dépôt.
+    val releaseKeystore = System.getenv("SIGNING_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
+
+    signingConfigs {
+        // Clé de test fixe : chaque version de test s'installe par-dessus la précédente
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("SIGNING_PASSWORD")
+                keyAlias = "gestionfichiers"
+                keyPassword = System.getenv("SIGNING_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            // Installable à côté de la version publiée
+            applicationIdSuffix = ".test"
+            versionNameSuffix = "-test"
+            resValue("string", "app_name", "Gestion Fichiers (test)")
+        }
         release {
+            isDebuggable = false
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             // Réduit fortement la taille de l'APK (icônes et code inutilisés retirés)
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // APK non signée : la signature est faite à part avec la clé de publication
         }
     }
 

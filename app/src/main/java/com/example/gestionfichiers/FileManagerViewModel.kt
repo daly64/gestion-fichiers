@@ -120,6 +120,17 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
         private set
     private var analysisJob: Job? = null
 
+    // EF-23 : mises à jour
+    @Suppress("DEPRECATION")
+    val appVersion: String = runCatching {
+        app.packageManager.getPackageInfo(app.packageName, 0).versionName
+    }.getOrNull() ?: "?"
+    /** Nouvelle version trouvée : la boîte de dialogue s'affiche. */
+    var update by mutableStateOf<UpdateInfo?>(null)
+        private set
+    var checkingUpdate by mutableStateOf(false)
+        private set
+
     /** Racine du stockage qui contient le dossier courant. */
     val volumeRoot: File get() = volumeOf(currentDir).root
 
@@ -127,6 +138,7 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         refreshVolumes()
+        checkForUpdate(manual = false)
         // F10 : vidage automatique des éléments de plus de 30 jours
         viewModelScope.launch {
             val purged = withContext(Dispatchers.IO) { runCatching { trash.purgeOlderThan(30) }.getOrDefault(0) }
@@ -591,6 +603,37 @@ class FileManagerViewModel(app: Application) : AndroidViewModel(app) {
             file.parentFile?.let { enter(it) }
             if (file.exists()) selected.add(file)
         }
+    }
+
+    // ---- EF-23 : mises à jour ----
+
+    /**
+     * Automatique : au plus une fois par jour, en silence si rien de neuf ou sans connexion,
+     * et sans reproposer une version ignorée. Manuelle : toujours, avec un message.
+     */
+    fun checkForUpdate(manual: Boolean) {
+        val now = System.currentTimeMillis()
+        if (!manual && now - prefs.lastUpdateCheck < 24L * 60 * 60 * 1000) return
+        if (checkingUpdate) return
+        checkingUpdate = true
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { Updates.fetchLatest() } }
+            checkingUpdate = false
+            val info = result.getOrNull()
+            if (result.isSuccess) prefs.lastUpdateCheck = now
+            when {
+                result.isFailure -> if (manual) message = "Vérification impossible : vérifiez votre connexion internet"
+                info != null && Updates.isNewer(info.version, appVersion) &&
+                    (manual || info.version != prefs.skippedVersion) -> update = info
+                manual -> message = "Vous avez la dernière version ($appVersion)"
+            }
+        }
+    }
+
+    /** [skip] : ne plus proposer cette version automatiquement. */
+    fun dismissUpdate(skip: Boolean) {
+        if (skip) prefs.skippedVersion = update?.version
+        update = null
     }
 
     // ---- F11 : exécution avec avancement ----

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Produit** | Gestion Fichiers, gestionnaire de fichiers pour Android |
-| **Version** | 2.1 |
+| **Version** | 2.2 |
 | **Plateforme** | Android 8.0 (API 26) et versions ultérieures |
 | **Technologie** | Kotlin, Jetpack Compose, Material 3 |
 | **Date** | 11 novembre 2026 |
@@ -46,6 +46,7 @@ Ce document décrit les fonctionnalités de l'application Gestion Fichiers, ses 
 | EF-20 | Analyse du stockage | Afficher les dossiers et les fichiers qui prennent le plus de place dans le stockage courant. | Les 20 plus gros dossiers du premier niveau et les 50 plus gros fichiers, avec leur taille et une barre proportionnelle. Un appui ouvre le dossier, ou le dossier qui contient le fichier. La corbeille est comptée à part. |
 | EF-21 | Archives protégées | Créer un ZIP protégé par mot de passe ; extraire un ZIP, 7Z ou RAR protégé. | Chiffrement AES-256, mot de passe de 4 caractères minimum, affichable. À l'extraction, le mot de passe est demandé seulement si l'archive est protégée, et redemandé s'il est faux. Aucun mot de passe n'est enregistré. |
 | EF-22 | Double volet | Sur un écran large (tablette, téléphone en paysage), afficher deux dossiers côte à côte. | Activé par défaut, désactivable dans le menu. Chaque volet affiche un onglet ; un appui dans un volet le rend actif. « Copier → » et « Déplacer → » envoient directement la sélection dans le dossier de l'autre volet. Glisser un élément dans l'autre volet le déplace. |
+| EF-23 | Mises à jour | Vérifier s'il existe une version plus récente et la télécharger. | Vérification automatique au plus une fois par jour, silencieuse sans connexion ; vérification manuelle depuis le menu latéral, avec la version installée. Une version peut être ignorée. Le fichier se télécharge dans le navigateur et s'installe par-dessus l'ancienne version, en conservant favoris et réglages. |
 
 ## 4. Interface et interactions
 
@@ -77,6 +78,8 @@ Ouvert par le bouton en haut à gauche ou en glissant depuis le bord gauche. Sec
 | Document, tableur, présentation | Bleu |
 | Autre | Gris |
 
+L'extension du fichier (PDF, MP3, ZIP…) s'affiche dans un petit badge de la couleur du type, en bas à droite de l'icône ou de la miniature.
+
 ### 4.4 Gestes
 
 | Geste | Effet |
@@ -105,15 +108,21 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 | Compatibilité | Android 8.0 (API 26) à Android 15 (API 35). |
 | Autorisations | Android 11 et plus : « Accès à tous les fichiers », demandé au premier lancement. Android 8 à 10 : lecture et écriture du stockage. |
 | Performance | Opérations sur les fichiers, recherche, analyse et miniatures exécutées en arrière-plan ; l'interface reste utilisable. Les miniatures sont mises en cache. |
-| Sécurité des données | Toute suppression passe par la corbeille. Aucune donnée ne quitte le téléphone, sauf partage demandé par l'utilisateur. |
+| Sécurité des données | Toute suppression passe par la corbeille. Aucune donnée ne quitte le téléphone, sauf partage demandé par l'utilisateur. Seule connexion internet : la lecture publique de la dernière version sur GitHub (EF-23). |
 | Apparence | Material 3 ; couleurs du système sur Android 12 et plus ; thème sombre pris en charge. |
 | Accessibilité | Chaque bouton icône dispose d'une description lisible par les lecteurs d'écran. |
 | Préférences | Tri, mode d'affichage et favoris conservés entre deux lancements. |
 
-## 6. Distribution
+## 6. Distribution et mises à jour
 
-- Chaque modification du code produit automatiquement, via GitHub Actions, une version de test (débogage) et une version release optimisée.
-- La version release est signée avec la clé de publication de l'application. Cette clé est conservée hors du dépôt public et doit rester la même pour toutes les mises à jour.
+| Élément | Règle |
+|---|---|
+| Identifiant | `io.github.daly64.gestionfichiers`, définitif à partir de la version 2.2. |
+| Version officielle | Compilée en release (optimisée, non débogable) et signée avec la clé de publication. Publiée sur GitHub sous l'étiquette `v<version>` ; c'est elle que l'application propose en mise à jour. |
+| Clé de publication | Conservée hors du dépôt, dans les secrets GitHub `SIGNING_KEYSTORE_BASE64` et `SIGNING_PASSWORD`, avec une copie de sauvegarde chez le développeur. Elle doit rester la même pour toujours : sans elle, aucune mise à jour ne peut s'installer par-dessus. |
+| Version de test | Publiée à chaque envoi (étiquette `test-<n>`), sous le nom « Gestion Fichiers (test) ». Elle s'installe à côté de la version officielle et se met à jour par-dessus elle-même (clé de test fixe). |
+| Numéro de version | `versionCode` augmenté à chaque version publiée, sinon Android refuse la mise à jour. |
+| Play Protect | Version officielle signée et non débogable, cible Android 15 (API 35), aucune autorisation d'installer des applications. Si un avertissement apparaît, l'APK peut être soumis à Google pour analyse. À partir de 2027, l'enregistrement du développeur (compte gratuit « distribution limitée ») sera nécessaire sur les téléphones certifiés. |
 
 ## 7. Hors périmètre
 
@@ -132,6 +141,7 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 | 1.0 | Appui simple pour ouvrir, appui long pour sélectionner ; première version release signée. |
 | 2.0 | Tri, partage, cartes SD et clés USB, accès rapide, favoris, ZIP, onglets, analyse du stockage ; miniatures, couleurs par type, taille et date, jauge d'espace, animations. |
 | 2.1 | Double volet sur écran large, archives 7Z et RAR, ZIP protégé par mot de passe. |
+| 2.2 | Badge d'extension coloré, vérification des mises à jour, signature stable, identifiant définitif. |
 
 ## Annexe — Organisation du code
 
@@ -142,7 +152,8 @@ Jauge du stockage, puis deux listes : « Plus gros dossiers » et « Plus gros f
 | `FileOps.kt` | Opérations sur les fichiers : lister, trier, copier, déplacer, renommer, rechercher. |
 | `Archives.kt` | Compression (ZIP, ZIP protégé, 7Z) et extraction (ZIP, 7Z, RAR, avec mot de passe). |
 | `Storage.kt` | Stockages (interne, SD, USB), espace libre, accès rapide, analyse du stockage. |
-| `Prefs.kt` | Préférences conservées : tri, affichage, favoris. |
+| `Prefs.kt` | Préférences conservées : tri, affichage, double volet, favoris, mises à jour. |
+| `Updates.kt` | Vérification de la dernière version publiée sur GitHub. |
 | `Trash.kt` | Corbeille : mise à la corbeille, restauration, effacement. |
 | `ui/FileManagerScreen.kt` | Écran principal, menu latéral, onglets, boîtes de dialogue. |
 | `ui/FileItems.kt` | Cases et lignes de fichiers : miniatures, couleurs, détails. |

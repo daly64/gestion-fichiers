@@ -54,6 +54,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.gestionfichiers.ArchiveFormat
+import com.example.gestionfichiers.UpdateInfo
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -191,6 +193,19 @@ fun FileManagerScreen(vm: FileManagerViewModel = viewModel()) {
             Screen.ANALYSIS -> AnalysisScreen(vm, snackbar)
             Screen.BROWSER -> BrowserScreen(vm, snackbar)
         }
+    }
+
+    vm.update?.let { info ->
+        UpdateDialog(
+            current = vm.appVersion,
+            info = info,
+            onDownload = {
+                openUrl(context, info.apkUrl)
+                vm.dismissUpdate(skip = false)
+            },
+            onLater = { vm.dismissUpdate(skip = false) },
+            onSkip = { vm.dismissUpdate(skip = true) }
+        )
     }
 }
 
@@ -945,6 +960,21 @@ private fun DrawerContent(vm: FileManagerViewModel, onDone: () -> Unit) {
                 selected = false,
                 onClick = { onDone(); vm.openTrash() }
             )
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Filled.SystemUpdate, contentDescription = null) },
+                label = {
+                    Column {
+                        Text(if (vm.checkingUpdate) "Vérification…" else "Rechercher une mise à jour")
+                        Text(
+                            "Version ${vm.appVersion}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                selected = false,
+                onClick = { vm.checkForUpdate(manual = true) }
+            )
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -1370,6 +1400,40 @@ private fun PasswordDialog(archiveName: String, wrong: Boolean, onConfirm: (Stri
     )
 }
 
+/** EF-23 : nouvelle version disponible. Le téléchargement se fait dans le navigateur. */
+@Composable
+private fun UpdateDialog(
+    current: String,
+    info: UpdateInfo,
+    onDownload: () -> Unit,
+    onLater: () -> Unit,
+    onSkip: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onLater,
+        icon = { Icon(Icons.Filled.SystemUpdate, contentDescription = null) },
+        title = { Text("Mise à jour disponible") },
+        text = {
+            Column {
+                Text("La version ${info.version} est disponible (vous avez la $current).")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Une fois le fichier téléchargé, ouvrez-le et touchez « Mettre à jour » : vos favoris et réglages sont conservés.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onDownload) { Text("Télécharger") } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onSkip) { Text("Ignorer") }
+                TextButton(onClick = onLater) { Text("Plus tard") }
+            }
+        }
+    )
+}
+
 /** F8 : renommer. Le nom est présélectionné sans l'extension, pour la garder facilement. */
 @Composable
 private fun RenameDialog(file: File, onRename: (String) -> Unit, onDismiss: () -> Unit) {
@@ -1404,6 +1468,14 @@ private fun uriFor(context: Context, file: File): Uri =
 
 private fun mimeOf(file: File): String =
     MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase()) ?: "*/*"
+
+private fun openUrl(context: Context, url: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "Aucun navigateur pour ouvrir le lien", Toast.LENGTH_SHORT).show()
+    }
+}
 
 /** F2 : ouvrir un fichier avec une application du téléphone. */
 private fun openFile(context: Context, file: File) {

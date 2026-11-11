@@ -1,4 +1,4 @@
-name: Compiler les APK (débogage et release)
+name: Compiler les APK (test et release signée)
 
 on:
   push:
@@ -21,31 +21,67 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Clé de publication : secrets du dépôt SIGNING_KEYSTORE_BASE64 et SIGNING_PASSWORD.
+      # Sans eux, la version release reste non signée.
+      - name: Préparer la clé de publication
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "$SIGNING_KEYSTORE_BASE64" | tr -d ' \n\r' | base64 -d > "$RUNNER_TEMP/publication.jks"
+            echo "SIGNING_KEYSTORE_FILE=$RUNNER_TEMP/publication.jks" >> "$GITHUB_ENV"
+            echo "SIGNED=true" >> "$GITHUB_ENV"
+            echo "Clé de publication trouvée"
+          else
+            echo "SIGNED=false" >> "$GITHUB_ENV"
+            echo "::warning::Secrets de signature absents : la version release ne sera pas signée"
+          fi
+
+      - name: Lire la version
+        run: |
+          echo "VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_ENV"
+
       - name: Compiler
+        env:
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug assembleRelease --stacktrace
 
-      - name: Renommer l'APK
+      - name: Renommer les APK
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk GestionFichiers-debug.apk
-          cp app/build/outputs/apk/release/app-release-unsigned.apk GestionFichiers-release-non-signee.apk
+          cp app/build/outputs/apk/debug/app-debug.apk "GestionFichiers-$VERSION-test.apk"
+          if [ "$SIGNED" = "true" ]; then
+            cp app/build/outputs/apk/release/app-release.apk "GestionFichiers-$VERSION.apk"
+          else
+            cp app/build/outputs/apk/release/app-release-unsigned.apk "GestionFichiers-$VERSION-non-signee.apk"
+          fi
+          ls -la *.apk
 
-      - name: Garder l'APK comme artefact
+      - name: Garder les APK comme artefact
         uses: actions/upload-artifact@v4
         with:
-          name: GestionFichiers-debug
-          path: |
-            GestionFichiers-debug.apk
-            GestionFichiers-release-non-signee.apk
+          name: GestionFichiers-${{ env.VERSION }}
+          path: "*.apk"
 
-      # Publication en « Release » : téléchargement direct depuis le téléphone
-      - name: Publier l'APK
+      # Version de test : pré-publication à chaque envoi
+      - name: Publier la version de test
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: debug-${{ github.run_number }}
-          name: Version de test ${{ github.run_number }}
+          tag_name: test-${{ github.run_number }}
+          name: Version de test ${{ env.VERSION }} (${{ github.run_number }})
           prerelease: true
-          files: |
-            GestionFichiers-debug.apk
-            GestionFichiers-release-non-signee.apk
+          make_latest: false
+          files: "*.apk"
+
+      # Version officielle : celle que l'application propose en mise à jour (dernière publication)
+      - name: Publier la version officielle
+        if: env.SIGNED == 'true' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Gestion Fichiers ${{ env.VERSION }}
+          prerelease: false
+          make_latest: true
+          body: "Version ${{ env.VERSION }}. Téléchargez GestionFichiers-${{ env.VERSION }}.apk et installez-le par-dessus la version précédente."
+          files: GestionFichiers-${{ env.VERSION }}.apk

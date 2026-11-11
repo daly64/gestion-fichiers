@@ -32,6 +32,15 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_DUAL, true)
         set(value) = sp.edit().putBoolean(KEY_DUAL, value).apply()
 
+    /** EF-23 : dernière vérification automatique (millisecondes) et version que l'utilisateur a choisi d'ignorer. */
+    var lastUpdateCheck: Long
+        get() = sp.getLong(KEY_LAST_CHECK, 0L)
+        set(value) = sp.edit().putLong(KEY_LAST_CHECK, value).apply()
+
+    var skippedVersion: String?
+        get() = sp.getString(KEY_SKIPPED, null)
+        set(value) = sp.edit().putString(KEY_SKIPPED, value).apply()
+
     /** Chemins absolus des dossiers favoris, dans l'ordre d'ajout. */
     var favorites: List<String>
         get() = sp.getString(KEY_FAVORITES, null)
@@ -46,5 +55,7 @@ class Prefs(context: Context) {
         const val KEY_GRID = "grid_view"
         const val KEY_FAVORITES = "favorites"
         const val KEY_DUAL = "dual_pane"
+        const val KEY_LAST_CHECK = "last_update_check"
+        const val KEY_SKIPPED = "skipped_version"
     }
 }

@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
@@ -239,6 +240,22 @@ internal fun FileThumb(file: File, selected: Boolean, size: Dp, iconSize: Dp, ki
                             .padding(2.dp)
                     )
                 }
+            }
+            // Badge de l'extension dans la couleur du type (cahier § 4.3)
+            val ext = remember(file) { if (file.isDirectory) "" else file.extension.uppercase().take(4) }
+            if (ext.isNotEmpty() && size >= 40.dp) {
+                Text(
+                    ext,
+                    color = Color.White,
+                    fontSize = if (size >= 60.dp) 10.sp else 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(kind.color)
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                )
             }
         }
     }

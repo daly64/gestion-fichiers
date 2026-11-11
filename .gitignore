@@ -6,3 +6,6 @@ local.properties
 .DS_Store
 captures/
 .kotlin/
+
+# Clés de publication : jamais dans le dépôt
+*.jks
